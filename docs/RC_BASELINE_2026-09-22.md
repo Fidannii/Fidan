@@ -17,10 +17,10 @@
 | Field | Value |
 |-------|--------|
 | Version | **3.0.0** |
-| Build / versionCode | **10** (will bump to **11** this harden pass) |
+| Build / versionCode | **11** (hardened RC) |
 | Bundle / App ID | **com.fidani.metrobuilder** |
 | Save version | **8** |
-| Tests | **63** (`it(` count) |
+| Tests | **65** after harden (`it(` count; was 63 at baseline) |
 
 ## qa/screens inventory
 
