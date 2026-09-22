@@ -13,6 +13,7 @@
     "release:prep": "npm run cap:sync && echo 'Fertig. Weiter: HOCHLADEN.md \u2014 Android Studio (.aab) oder Xcode (Archive)'",
     "icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/generate-store-screenshots.mjs",
+    "pack:appstore": "bash scripts/pack-appstore-zip.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "ci:gate": "npm run test && npm run build"

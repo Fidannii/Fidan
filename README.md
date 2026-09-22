@@ -1,7 +1,8 @@
 # MetroBuilder
 
 **Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip  
-**Download-Seite:** https://fidannii.github.io/Fidan/download.html (nach Pages-Setup)
+**Download-Seite:** https://fidannii.github.io/Fidan/download.html (nach Pages-Setup)  
+**App Store Start:** **[APPSTORE_START.md](./APPSTORE_START.md)**
 
 Städtebau-Simulation für **Android + iOS** — **v2.0.0** (Simulation Core · City Life · Traffic · Multi-City).
 
@@ -9,7 +10,7 @@ Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 
 ## Stores hochladen (Start hier)
 
-**→ [HOCHLADEN.md](./HOCHLADEN.md)** — komplette Anleitung Google Play + Apple App Store.
+**→ [APPSTORE_START.md](./APPSTORE_START.md)** (Apple, kurz) · **[HOCHLADEN.md](./HOCHLADEN.md)** (Play + Apple, ausführlich)
 
 | | |
 |--|--|
