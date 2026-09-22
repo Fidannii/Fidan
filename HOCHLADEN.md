@@ -1,5 +1,7 @@
 # MetroBuilder — Hochladen in Google Play + Apple App Store
 
+**Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip
+
 Ja: Das Spiel ist für **Android und iOS** entwickelt (Capacitor).  
 Ein Code → zwei native Apps:
 

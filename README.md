@@ -1,5 +1,7 @@
 # MetroBuilder
 
+**Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip
+
 Städtebau-Simulation für **Android + iOS** — **v1.4.0** (Capacitor · Google Play · Apple App Store).
 
 ## Stores hochladen (Start hier)
