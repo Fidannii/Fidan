@@ -27,9 +27,11 @@
 | P1-04 | Accidental demolish | **VERIFIED** — confirm modal |
 | P1-05 | Background timers | **VERIFIED** — visibility pause + single rAF guard |
 | P1-06 | Traffic cause unclear | **VERIFIED** — blurb + overlay |
-| P1-07 | Store screenshots final export | **OPEN** — concept ready; final device captures external |
+| P1-07 | Store screenshots final export | **OPEN** — concept + QA set; final device captures external |
 | P1-08 | Bus discoverability | **VERIFIED** — kept SHIP with clearer copy |
 | P1-09 | Friendly load errors | **VERIFIED** — `userMessage` + regression tests |
+| P1-10 | Landscape without layout | **FIXED** — portrait-only lock (iOS+Android) |
+| P1-11 | Play listing claimed PEGI 3 | **FIXED** — replaced with questionnaire intent |
 
 ## P2
 

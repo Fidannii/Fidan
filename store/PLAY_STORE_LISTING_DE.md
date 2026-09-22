@@ -28,7 +28,8 @@ Besserer Verkehr, Buslinien, klarere Wirtschaft und stabilere Saves.
 Simulation / Strategy
 
 ## Content rating
-PEGI 3 / Everyone
+Intent ~PEGI 7 / IARC equivalent — complete questionnaire from real content only.
+Not Made for Kids. Do not claim a final certificate here.
 
 ## Privacy Policy
 https://fidannii.github.io/Fidan/privacy.html
