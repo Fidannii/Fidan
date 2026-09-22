@@ -3,11 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MetroBuilder — Download für App Store</title>
+    <title>MetroBuilder — Download (Store RC)</title>
     <style>
       :root {
         --bg: #050d12;
-        --card: #0c1a22;
         --text: #e8f2f6;
         --muted: #8aa3b0;
         --accent: #3ecf8e;
@@ -87,7 +86,6 @@
         border: 1px solid rgba(94, 234, 180, 0.4);
         box-shadow: none;
       }
-      a.btn:hover { filter: brightness(1.05); }
       ol {
         text-align: left;
         margin: 1.1rem 0 0.4rem;
@@ -107,36 +105,37 @@
   </head>
   <body>
     <main>
-      <div class="badge">v2.0.0 · Store-Submission vorbereitet</div>
+      <div class="badge">v3.0.0 · Store RC1 Hardened</div>
       <h1>MetroBuilder</h1>
       <p>
-        Komplettes iOS- + Android-Projekt zum Runterladen.
-        Auf dem Mac mit Xcode in den Apple App Store hochladen.
+        Release Candidate für externe Store-Schritte (Signing, TestFlight, Play Internal).
+        Kein Anspruch „bereits im Store live“.
       </p>
-      <div class="id">com.fidani.metrobuilder · Build 10</div>
+      <div class="id">com.fidani.metrobuilder · Build 11 · Save v8</div>
       <a
         class="btn"
-        href="https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip"
+        href="https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip"
       >
-        ZIP jetzt herunterladen
+        Source-Branch als ZIP
       </a>
       <a
         class="btn secondary"
-        href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-game-app-7864/APPSTORE_START.md"
+        href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/docs/EXTERNAL_STORE_STEPS.md"
       >
-        App-Store-Anleitung
+        Externe Store-Schritte
       </a>
       <ol>
-        <li><strong>ZIP entpacken</strong> → <code>npm install</code> → <code>npm run cap:sync</code></li>
+        <li><strong>ZIP entpacken</strong> → <code>npm ci</code> → <code>npm test</code> → <code>npm run cap:sync</code></li>
         <li><strong>Mac:</strong> <code>cd ios/App && pod install && open App.xcworkspace</code></li>
-        <li><strong>Xcode:</strong> Team wählen → Archive → App Store Connect Upload</li>
-        <li>Listing &amp; Screenshots aus <code>store/</code> — Details in <code>APPSTORE_START.md</code></li>
+        <li><strong>Xcode:</strong> Team → Archive → TestFlight</li>
+        <li><strong>Android:</strong> lokaler Keystore → signed AAB → Play Internal</li>
       </ol>
       <p class="meta">
-        Privacy:
-        <a href="./privacy.html">privacy.html</a>
-        · Play Store:
-        <a href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-game-app-7864/HOCHLADEN.md">HOCHLADEN.md</a>
+        Privacy: <a href="./privacy.html">privacy.html</a>
+        · Report:
+        <a href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/docs/METROBUILDER_V3_STORE_RC1_HARDENED_REPORT.md">RC Report</a>
+        · SHA256:
+        <code>4be9a4b68c107b0b5ee6ffadf50b10bf6934e6f63c7aff80ba3d53d31cb7dc1c</code>
       </p>
     </main>
   </body>
