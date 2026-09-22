@@ -1,6 +1,7 @@
-# App Store / Play Store — Checkliste (2.0.0)
+# App Store / Play Store — Checkliste (3.0.0 Build 12)
 
-Vollständige Anleitung: **[HOCHLADEN.md](./HOCHLADEN.md)**
+Vollständige Anleitung: **[HOCHLADEN.md](./HOCHLADEN.md)** · Kurzstart: **[APPSTORE_START.md](./APPSTORE_START.md)**  
+**Download:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip
 
 ## Vor dem Upload
 - [ ] **Google Play Developer** Account aktiv
@@ -11,9 +12,9 @@ Vollständige Anleitung: **[HOCHLADEN.md](./HOCHLADEN.md)**
 - [ ] Xcode Capability: **In-App Purchase**
 - [ ] Sandbox-Kauf (Apple) und/oder License-Tester (Google) OK
 - [ ] GitHub Pages: `/docs` → Privacy live
-- [ ] Screenshots aus `store/screenshots/` hochgeladen
-- [ ] Listing DE: `store/APP_STORE_LISTING_DE.md` + `store/PLAY_STORE_LISTING_DE.md`
-- [ ] `npm run cap:sync` ausgeführt
+- [ ] Screenshots (Device-Größen) — Konzept: `store/final/` + `store/SCREENSHOT_CONCEPT.md`
+- [ ] Listing: `store/final/APPLE_METADATA_*.md` + `store/final/GOOGLE_METADATA_*.md`
+- [ ] `npm ci && npm run cap:sync` ausgeführt
 - [ ] Android: Keystore + Signed Bundle (.aab)
 - [ ] iOS: Xcode Signing → Archive → Upload
 
@@ -31,12 +32,12 @@ Vollständige Anleitung: **[HOCHLADEN.md](./HOCHLADEN.md)**
 
 ## Review-Formular
 - **Login nötig?** Nein
-- **IAP aktiv?** Ja — Apple App Store + Google Play (Consumables)
+- **IAP aktiv?** Ja — Apple App Store + Google Play (Consumables) — Sandbox vor Production prüfen
 - **Tracking?** Nein
-- **Altersfreigabe:** 9+ / PEGI 3
+- **Altersfreigabe:** Fragebogen aus Inhalt (Ziel ~9+ / PEGI~7) — **nicht** Made for Kids
 - **Kategorie:** Spiele / Simulation
 - **Export Compliance:** Nein — Info.plist gesetzt
 
 ## Nach dem Upload
-- [ ] Build auswählen
-- [ ] Zur Prüfung einreichen
+- TestFlight / Play Internal testen
+- Nur Review-/Crash-/Save-Fixes — keine neuen Features
