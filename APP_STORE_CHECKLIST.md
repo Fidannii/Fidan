@@ -3,8 +3,9 @@
 ## Vor dem Upload
 - [ ] Apple Developer Account aktiv
 - [ ] App in App Store Connect angelegt (Bundle ID `com.fidani.metrobuilder`)
-- [ ] Privacy Policy öffentlich erreichbar (`public/privacy.html` hosten)
-- [ ] Screenshots (iPhone 6.7" mindestens 3 Stück)
+- [ ] GitHub Pages: `/docs` → Privacy live (`…/privacy.html`)
+- [ ] Screenshots aus `store/screenshots/` hochgeladen
+- [ ] Listing aus `store/APP_STORE_LISTING_DE.md` eingefügt
 - [ ] `npm run cap:sync` auf dem Mac ausgeführt
 - [ ] Xcode Signing: eigenes Team
 
@@ -20,8 +21,8 @@
 - **Tracking?** Nein
 - **Altersfreigabe:** 9+
 - **Kategorie:** Spiele / Simulation
+- **Export Compliance:** Nein (Non-Exempt Encryption) — bereits in Info.plist
 
 ## Nach dem Upload
 - [ ] Build in Connect auswählen
-- [ ] Export Compliance: HTTPS only → meist „Nein“ zu Non-Exempt Encryption
 - [ ] Zur Prüfung einreichen

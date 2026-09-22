@@ -9,22 +9,22 @@ npm install
 npm run dev
 ```
 
-## App Store / Play Store
+## App Store — nur noch posten
 
-Siehe **[STORE_PUBLISH.md](./STORE_PUBLISH.md)** — Schritt-für-Schritt bis zum Upload.
-
-Kurz:
+Alles vorbereitet. Auf dem **Mac**:
 
 ```bash
 npm install
-npm run icons
 npm run cap:sync
-npx cap open ios      # Mac + Xcode → Archive → App Store Connect
-npx cap open android  # Android Studio → AAB
+npx cap open ios
 ```
 
+Dann in Xcode: Team wählen → **Archive** → App Store Connect.
+
+Details: **[STORE_PUBLISH.md](./STORE_PUBLISH.md)**  
+Checkliste: **[APP_STORE_CHECKLIST.md](./APP_STORE_CHECKLIST.md)**  
+Listing-Texte: `store/APP_STORE_LISTING_DE.md`  
+Screenshots: `store/screenshots/`  
+Privacy (GitHub Pages): `docs/privacy.html`
+
 Bundle ID: `com.fidani.metrobuilder`
-
-## Inhalt
-
-Kernschleife, volle GDD-Systeme, Isometrie, Avatare, Level-Aufstieg, Privacy-Seite, lokale Speicherung.
