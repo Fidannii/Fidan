@@ -776,6 +776,16 @@ button:disabled {
   color: #042218;
 }
 
+.iap-grid .iap-btn {
+  border-color: rgba(122, 212, 255, 0.35);
+  background: linear-gradient(160deg, rgba(122, 212, 255, 0.14), rgba(62, 207, 142, 0.06));
+}
+
+.iap-btn .cost.euro {
+  color: #7ad4ff;
+  font-weight: 800;
+}
+
 .diff-leicht { border-color: rgba(62, 207, 142, 0.4); }
 .diff-normal { border-color: rgba(122, 212, 255, 0.4); }
 .diff-anspruchsvoll { border-color: rgba(240, 213, 106, 0.45); }

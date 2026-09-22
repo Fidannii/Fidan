@@ -24,6 +24,7 @@ import {
 } from './world';
 import { TRADER_IDS, avatarMeta } from '../ui/avatars';
 import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL, xpNeeded } from './progression';
+import { iapDef, type IapSku } from '../iap/catalog';
 
 export type Say = (msg: string) => void;
 
@@ -319,6 +320,34 @@ export function buyNextLevel(g: Game, say: Say): boolean {
   if (g.level > before) say(`Level ${g.level}! (−${cost}¢)`);
   else say(`+${remain} XP (−${cost}¢)`);
   return true;
+}
+
+/** Apply a real-money IAP reward (consumable) */
+export function grantIap(g: Game, sku: IapSku, say: Say): boolean {
+  const def = iapDef(sku);
+  if (!def) {
+    say('Unbekanntes Produkt.');
+    return false;
+  }
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level — Kauf gutgeschrieben als Credits.');
+    g.cash += 500;
+    return true;
+  }
+  if (def.kind === 'xp' && def.xp) {
+    xp(g, def.xp);
+    say(`${def.title}: +${def.xp} XP`);
+    return true;
+  }
+  if (def.kind === 'level') {
+    const before = g.level;
+    const remain = Math.max(1, xpNeeded(g.level) - g.xp);
+    xp(g, remain);
+    if (g.level > before) say(`Sofort-Level → Level ${g.level}!`);
+    else say(`+${remain} XP (Sofort-Level)`);
+    return true;
+  }
+  return false;
 }
 
 export function buy(g: Game, r: Res, say: Say) {

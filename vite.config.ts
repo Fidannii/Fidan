@@ -30,4 +30,12 @@ export default defineConfig({
     host: true,
     port: 5173,
   },
+  optimizeDeps: {
+    exclude: ['cordova-plugin-purchase'],
+  },
+  build: {
+    commonjsOptions: {
+      include: [/cordova-plugin-purchase/, /node_modules/],
+    },
+  },
 });

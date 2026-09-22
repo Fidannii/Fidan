@@ -7,10 +7,11 @@ Alles Nötige ist vorbereitet — auf dem Mac nur noch signieren & hochladen.
 
 | Asset | Status |
 |-------|--------|
-| Capacitor iOS/Android (`com.fidani.metrobuilder` 1.0.0) | ✅ |
+| Capacitor iOS/Android (`com.fidani.metrobuilder` 1.3.0) | ✅ |
 | App-Icon 1024 (ohne Alpha) + Splash | ✅ |
 | Privacy Manifest (`PrivacyInfo.xcprivacy`) | ✅ |
 | Export Compliance (`ITSAppUsesNonExemptEncryption=NO`) | ✅ |
+| **Echtgeld-IAP** (Consumables, StoreKit) | ✅ `store/IAP_SETUP.md` |
 | Listing-Texte DE/EN | ✅ `store/APP_STORE_LISTING_*.md` |
 | Screenshots (iPhone 6.7" / 6.5") | ✅ `store/screenshots/` |
 | Privacy Policy (GitHub Pages) | ✅ `docs/privacy.html` |
@@ -57,7 +58,16 @@ Optional mit `ios/exportOptions.plist` nach dem Archive.
 4. Privacy URL setzen
 5. Build auswählen → **Zur Prüfung einreichen**
 
-Altersfreigabe **9+**, Kategorie **Spiele → Simulation**, keine IAP in 1.0.0, kein Tracking.
+Altersfreigabe **9+**, Kategorie **Spiele → Simulation**, **IAP aktiv** (Consumables), kein Tracking.
+
+## In-App-Käufe (Echtgeld)
+
+Siehe **[store/IAP_SETUP.md](./store/IAP_SETUP.md)** — Product IDs in App Store Connect anlegen + Xcode Capability **In-App Purchase**.
+
+Produkt-IDs:
+- `com.fidani.metrobuilder.xp_small` / `_medium` / `_large`
+- `com.fidani.metrobuilder.level_up`
+
 
 ## Screenshots neu erzeugen (optional)
 

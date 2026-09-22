@@ -15,6 +15,7 @@ import {
   collect,
   demolish,
   expand,
+  grantIap,
   load,
   place,
   prog,
@@ -40,6 +41,8 @@ import {
   xpProgress,
 } from './core/progression';
 import type { LevelUpEvent } from './core/progression';
+import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus } from './iap/iap';
+import type { IapSku } from './iap/catalog';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
 import { Capacitor } from '@capacitor/core';
@@ -241,9 +244,30 @@ function paintPanel() {
               const packs = xpPacks(g);
               const lvlCost = buyLevelCost(g);
               const remain = xp.need - xp.cur;
+              const iap = listIapOffers();
+              const iapNote =
+                getIapStatus() === 'ready'
+                  ? Capacitor.isNativePlatform()
+                    ? 'Zahlung über App Store / Google Play.'
+                    : 'Web-Demo: Käufe sind Sandbox (kein Echtgeld). In der iOS-App = StoreKit.'
+                  : 'Store wird geladen…';
               return `
-      <h3>Mit Credits aufsteigen</h3>
-      <p class="muted">XP oder das nächste Level direkt mit 💰 Credits kaufen.</p>
+      <h3>Echtgeld (In-App-Kauf)</h3>
+      <p class="muted">${iapNote}</p>
+      <div class="shop-grid iap-grid">
+        ${iap
+          .map(
+            (o) => `<button data-iap="${o.id}" class="shop-btn iap-btn" ${g.level >= MAX_LEVEL ? 'disabled' : ''}>
+              <strong>${o.title}</strong>
+              <span class="muted">${o.blurb}</span>
+              <span class="cost euro">${o.price}</span>
+            </button>`,
+          )
+          .join('')}
+      </div>
+      <div class="row"><button id="a-iap-restore" class="ghost">Käufe wiederherstellen</button></div>
+      <h3>Mit Credits (Soft)</h3>
+      <p class="muted">XP oder Level auch mit 💰 Spiel-Credits.</p>
       <div class="shop-grid">
         ${packs
           .map(
@@ -256,7 +280,7 @@ function paintPanel() {
         ${
           lvlCost != null
             ? `<button id="a-buy-level" class="shop-btn primary" ${g.cash < lvlCost ? 'disabled' : ''}>
-                <strong>Level ${g.level + 1} kaufen</strong>
+                <strong>Level ${g.level + 1} (Credits)</strong>
                 <span class="muted">${remain} XP fehlen</span>
                 <span class="cost">${lvlCost}¢</span>
               </button>`
@@ -514,6 +538,22 @@ function wire() {
       refresh();
     });
   });
+  panel.querySelectorAll('[data-iap]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const id = (el as HTMLElement).dataset.iap as IapSku;
+      void (async () => {
+        const ok = await purchaseIap(id);
+        if (ok) {
+          void haptic('heavy');
+          view.spawnBurst(g.size / 2, g.size / 2, '#7ad4ff', 18);
+        }
+        refresh();
+      })();
+    });
+  });
+  panel.querySelector('#a-iap-restore')?.addEventListener('click', () => {
+    void restoreIap().then(() => refresh());
+  });
   panel.querySelector('#a-buy-level')?.addEventListener('click', () => {
     if (buyNextLevel(g, say)) {
       void haptic('heavy');
@@ -749,9 +789,9 @@ function frame() {
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
     <div class="modal intro-modal">
-      <div class="intro-badge">v1.1</div>
+      <div class="intro-badge">v1.3 · IAP</div>
       <h2>Willkommen in MetroBuilder</h2>
-      <p class="muted">Baue aus einer leeren Fläche deine Metropole — offline, lokal, mit Level-Aufstieg.</p>
+      <p class="muted">Baue deine Metropole — Level bis 100, optional mit Credits oder Echtgeld-IAP.</p>
       <ol class="loop">
         <li>Straßen legen & Produktionsketten starten</li>
         <li>Wohnungen upgraden, Strom & Wasser halten</li>
@@ -770,4 +810,15 @@ if (!localStorage.getItem('metrobuilder-full-intro')) {
 refresh();
 frame();
 setInterval(() => save(g), 4000);
+
+void initIap({
+  say,
+  onGrant: (sku) => {
+    grantIap(g, sku, say);
+    refresh();
+  },
+}).then(() => {
+  if (tab === 'level') paintPanel();
+});
+
 say('Vollversion bereit.');

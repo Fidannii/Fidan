@@ -15,13 +15,16 @@
 3. Product → Archive
 4. Distribute → App Store Connect → Upload
 
-## Review-Formular
-- **Login nötig?** Nein
-- **IAP aktiv?** Nein (v1.0.0)
-- **Tracking?** Nein
-- **Altersfreigabe:** 9+
-- **Kategorie:** Spiele / Simulation
-- **Export Compliance:** Nein (Non-Exempt Encryption) — bereits in Info.plist
+- [ ] IAP-Produkte in App Store Connect angelegt (`store/IAP_SETUP.md`)
+- [ ] Xcode Capability: **In-App Purchase**
+- [ ] Sandbox-Kauf getestet
+- [ ] Review-Notizen mit IAP-Hinweis
+- [ ] Login nötig? Nein
+- [ ] IAP aktiv? Ja — Consumable XP / Level-Boost
+- [ ] Tracking? Nein
+- [ ] Altersfreigabe: 9+
+- [ ] Kategorie: Spiele / Simulation
+- [ ] Export Compliance: Nein (Non-Exempt Encryption) — bereits in Info.plist
 
 ## Nach dem Upload
 - [ ] Build in Connect auswählen

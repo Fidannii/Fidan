@@ -25,8 +25,8 @@ Kernfortschritt ist ohne Zahlung erreichbar. Credits, Gems und Schlüssel sind v
 ## Keywords (≤100 chars, comma-separated)
 Städtebau,Simulation,Stadt,Bauen,Strategie,Idle,Wirtschaft,Metropole
 
-## What's New (1.2.0)
-Level-Aufstieg bis 100 mit steigender Schwierigkeit: steilere XP-Kurve, gestaffelte Freischaltungen, teurere Bauten, langsamere Produktion, Hochhaus-Stufen und Meilenstein-Belohnungen.
+## What's New (1.3.0)
+Echtgeld-In-App-Käufe: XP-Pakete und Sofort-Level über App Store / Google Play. Parallel Soft-Credits. Level 1–100 mit steigender Schwierigkeit.
 
 ## Category
 Primary: Games → Simulation
