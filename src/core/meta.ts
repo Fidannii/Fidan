@@ -46,28 +46,28 @@ export type TutorialStep = {
 export const TUTORIAL: TutorialStep[] = [
   {
     id: 0,
-    title: 'Willkommen, Bürgermeister!',
-    body: 'Ziehe die Karte mit dem Finger. Tippe ein Feld an, um Details zu sehen.',
+    title: 'Deine Stadt',
+    body: 'Zieh die Karte · tippe ein Feld. Unten wählst du, was du baust.',
   },
   {
     id: 1,
-    title: 'Straßen legen',
-    body: 'Wähle unten „Straße“ und tippe leere Felder an — Gebäude brauchen Anschluss.',
+    title: 'Erste Straße',
+    body: 'Wähle „Straße“ und tippe neben die Stadt — Gebäude brauchen Anschluss.',
   },
   {
     id: 2,
-    title: 'Produzieren & sammeln',
-    body: 'Wenn über einem Gebäude ¢ erscheint: tippen zum Einsammeln. Das bringt XP!',
+    title: 'Einwohner',
+    body: 'Wohnungen wachsen an Straßen. Schau oben auf Einwohner & Zufriedenheit.',
   },
   {
     id: 3,
-    title: 'Aufstieg',
-    body: 'Im Tab „Aufstieg“ siehst du Level, Schwierigkeit, Soft-Credits und Echtgeld-IAP.',
+    title: 'Jobs & Geld',
+    body: 'Gewerbe/Produktion schaffen Jobs. Cashflow zeigt Einnahmen und Kosten.',
   },
   {
     id: 4,
-    title: 'Fertig!',
-    body: 'Erweitere die Stadt, erfülle Quests und werde Legende der 100. Viel Erfolg!',
+    title: 'Erstes Problem',
+    body: 'Wenn der Stau steigt: mehr Straßen, Highway oder eine Buslinie.',
   },
 ];
 

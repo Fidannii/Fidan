@@ -36,6 +36,7 @@ export class View {
   camX = 0;
   camY = 0;
   scale = 1.5;
+  placeOk: boolean | null = null;
   hover: { x: number; y: number } | null = null;
   particles: Particle[] = [];
   floats: FloatLabel[] = [];
@@ -623,14 +624,23 @@ export class View {
       ctx.fill();
     };
 
-    if (this.hover) mark(this.hover.x, this.hover.y, '#f4e27c');
+    if (this.hover) {
+      const okColor = this.placeOk === false ? '#ff6b6b' : this.placeOk === true ? '#3ecf8e' : '#f4e27c';
+      mark(this.hover.x, this.hover.y, okColor);
+    }
     if (g.focus) mark(g.focus.x, g.focus.y, '#3ecf8e');
 
     if (g.selected && this.hover) {
       const p = this.toScreen(this.hover.x, this.hover.y);
-      ctx.globalAlpha = 0.42;
+      ctx.globalAlpha = this.placeOk === false ? 0.28 : 0.5;
       drawBuildingSprite(ctx, g.selected, p.x, p.y, this.scale, 1, this.time, 0);
       ctx.globalAlpha = 1;
+      if (this.placeOk === false) {
+        ctx.fillStyle = 'rgba(255,80,80,0.22)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 10 * this.scale, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     this.particles = this.particles.filter((pt) => {

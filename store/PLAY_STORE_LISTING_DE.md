@@ -1,47 +1,37 @@
-# Google Play Listing — MetroBuilder 2.0.0
+# Google Play Listing — MetroBuilder 3.0.0
 
-Package name: `com.fidani.metrobuilder`  
-Category: Games → Simulation  
-Content rating: PEGI 3 / ESRB Everyone (keine Gewalt, kein Chat)
+Package: `com.fidani.metrobuilder`
 
-## App-Name
+## App name
 MetroBuilder
 
-## Kurzbeschreibung (≤80)
-Baue deine Metropole bis Level 100 — optional mit In-App-Käufen.
+## Short description (≤80)
+Baue deine Stadt — Jobs, Verkehr und Budget im Gleichgewicht halten.
 
-## Vollständige Beschreibung
-MetroBuilder ist eine Städtebau-Simulation für Android:
+## Full description
+Baue deine Stadt, schaffe Arbeitsplätze und halte Verkehr und Finanzen im Gleichgewicht.
 
-• Produktionsketten (Holz → Bretter → Upgrades)
-• Infrastruktur, Dienste und Spezialgebäude
-• Handel, Club-Krieg und Regionen
-• Level-Aufstieg bis Level 100 mit steigender Schwierigkeit
-• Daily-Boni, Erfolge, Tutorial & Meisterschaft nach Level 100
-• Optional: XP-Pakete & Sofort-Level als In-App-Käufe (Google Play Billing)
-• Offline spielbar — Fortschritt lokal gespeichert
+MetroBuilder ist eine Städtebau-Simulation für unterwegs:
+• Wohnen, Jobs und Nachfrage reagieren auf deine Entscheidungen
+• Straßen, Highways und Buslinien beeinflussen den Verkehr
+• Cashflow zeigt klar, wofür Geld reingeht und rausgeht
+• Events mit echten Folgen für deine Stadt
+• Mehrere Regionen, jeweils mit eigenem Stadtstand
+• Offline spielbar, Fortschritt lokal gespeichert
 
-Kernfortschritt ist ohne Zahlung erreichbar. Credits sind Soft Currency. Echtgeld-Käufe laufen über Google Play (Consumables).
+Kernspiel ohne Zahlung. Optionale In-App-Käufe (XP / Sofort-Level) über Google Play.
 
-## Was ist neu (2.0.0)
-Audio, Tutorial, Daily-Boni, Erfolge & Meisterschaft. Soft-Credits + Google Play IAP. Level 1–100.
+## What's new (3.0.0)
+Besserer Verkehr, Buslinien, klarere Wirtschaft und stabilere Saves.
 
-## Grafiken
-- App-Icon: aus dem Projekt (mipmap / `resources/icon.png`)
-- Feature Graphic: optional selbst anlegen (1024×500)
-- Phone Screenshots: `store/screenshots/01-city-iphone67.png` usw. (auch für Play nutzbar)
+## Category
+Simulation / Strategy
 
-## Kontakt / Privacy
-- Privacy Policy: https://fidannii.github.io/Fidan/privacy.html
-- Support: https://github.com/Fidannii/Fidan
+## Content rating
+PEGI 3 / Everyone
 
-## In-App-Produkte (Consumable)
+## Privacy Policy
+https://fidannii.github.io/Fidan/privacy.html
 
-| Product ID | Preis-Vorschlag |
-|---|---|
-| `com.fidani.metrobuilder.xp_small` | 0,99 € |
-| `com.fidani.metrobuilder.xp_medium` | 2,99 € |
-| `com.fidani.metrobuilder.xp_large` | 5,99 € |
-| `com.fidani.metrobuilder.level_up` | 1,99 € |
-
-Details: `store/IAP_SETUP.md`
+## Contact
+Über Play Console Kontaktformular / Support-URL in den Store-Einstellungen

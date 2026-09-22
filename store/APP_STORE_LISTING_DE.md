@@ -1,52 +1,52 @@
-# App Store Connect Listing — MetroBuilder 2.0.0
+# App Store Connect Listing — MetroBuilder 3.0.0
 
-Copy-paste ready. Bundle ID: `com.fidani.metrobuilder`
+Bundle ID: `com.fidani.metrobuilder`
 
 ## Name
 MetroBuilder
 
 ## Subtitle (≤30)
-Städtebau-Simulation
+Baue deine Metropole
 
 ## Promotional Text (≤170)
-Baue deine Metropole bis Level 100 — optional mit In-App-Käufen für XP & Sofort-Level.
+Plane Straßen, schaffe Arbeitsplätze und halte Finanzen und Verkehr im Gleichgewicht — offline spielbar.
 
 ## Description
-MetroBuilder ist eine Städtebau-Simulation:
+Baue deine Stadt, schaffe Arbeitsplätze und halte Verkehr und Finanzen im Gleichgewicht.
 
-• Produktionsketten (Holz → Bretter → Upgrades)
-• Infrastruktur, Dienste und Spezialgebäude
-• Handel, Club-Krieg und Regionen
-• Level-Aufstieg bis Level 100 mit steigender Schwierigkeit
-• Optional: XP-Pakete & Sofort-Level als In-App-Käufe
-• Offline spielbar — Fortschritt lokal gespeichert
+In MetroBuilder wächst deine Siedlung mit jeder Entscheidung:
+• Straßen und Infrastruktur verbinden Wohnen und Jobs
+• Steuern, Unterhalt und Dienste formen dein Budget
+• Stau und Nachfrage zeigen, wo du eingreifen musst
+• Buslinien entlasten stark befahrene Strecken
+• Events fordern Entscheidungen mit Folgen
+• Mehrere Regionen mit eigenen Stadtständen
 
-Kernfortschritt ist ohne Zahlung erreichbar. Credits sind Soft Currency. Echtgeld-Käufe laufen über den App Store (Consumables).
+Der Kernfortschritt ist ohne Zahlung erreichbar. Optional gibt es In-App-Käufe für XP und Sofort-Level über den App Store.
 
-## Keywords (≤100 chars, comma-separated)
-Städtebau,Simulation,Stadt,Bauen,Strategie,Idle,Wirtschaft,Metropole
+Offline spielbar — Fortschritt wird lokal gespeichert.
 
-## What's New (2.0.0)
-Audio, Tutorial, Daily-Boni, Erfolge & Meisterschaft nach Level 100. Soft-Credits + Echtgeld-IAP. Level 1–100 mit steigender Schwierigkeit.
+## Keywords (≤100)
+Städtebau,Simulation,Stadt,Bauen,Strategie,Verkehr,Wirtschaft,Metropole
+
+## What's New (3.0.0)
+Verkehrsgraf & Buslinien, klarere Wirtschaftsanzeige, verbessertes Tutorial und stabilere Spielstände.
 
 ## Category
 Primary: Games → Simulation
 Secondary: Games → Strategy
 
 ## Age Rating
-9+ (No unrestricted web, no user chat, no mature content)
+9+
 
 ## Privacy Policy URL
 https://fidannii.github.io/Fidan/privacy.html
 
 ## Support URL
-https://github.com/Fidannii/Fidan
+https://fidannii.github.io/Fidan/
 
 ## Copyright
-© 2026 Fidani Fidani
+© 2026 Fidani
 
-## Review Notes
-MetroBuilder is an offline city builder. No login.
-Open the “Aufstieg” tab for XP progress and In-App Purchases (consumable XP packs + one-level boost).
-Soft-currency credit packs also available. Core progress reachable without paying.
-Export compliance: ITSAppUsesNonExemptEncryption = NO.
+## IAP
+Optional Consumables — siehe `store/IAP_SETUP.md`

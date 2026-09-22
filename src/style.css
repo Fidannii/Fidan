@@ -1178,7 +1178,47 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+#hud .stat.hud-primary {
+  font-weight: 700;
+  min-width: 3.2rem;
+  justify-content: center;
+}
+
+#hud .stat.hud-secondary {
+  opacity: 0.72;
+  font-size: 0.82em;
+}
+
+button,
+.build-btn,
+.shop-btn {
+  min-height: 44px;
+}
+
+.build-btn {
+  min-width: 4.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app::before,
+  .hud-in,
+  .tut-card,
+  .event-card,
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.modal {
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
 @media (max-width: 860px) {
+  #hud .stat.hud-secondary {
+    display: none;
+  }
+
   #app {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr minmax(160px, 34vh) auto;

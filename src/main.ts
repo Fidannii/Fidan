@@ -26,6 +26,7 @@ import {
   upgradeService,
   cityStats,
   tradeToRegion,
+  canPlace,
 } from './core/sim';
 import { landValueAt } from './core/systems';
 import { computeTraffic } from './core/traffic';
@@ -235,32 +236,29 @@ function paintTutorial() {
 
 function paintHud() {
   const s = cityStats(g);
-  const left = Math.max(0, g.weekEnds - Date.now());
-  const m = Math.floor(left / 60000);
   const xp = xpProgress(g);
   const net = s.cashflow.net;
+  const dem =
+    s.demand.residential > 8 ? 'Wohnen+' : s.demand.industrial > 8 ? 'Industrie+' : s.demand.commercial > 8 ? 'Gewerbe+' : 'stabil';
   hud.innerHTML = `
     <div class="hud-player">
       <img class="hud-avatar" src="${avatarUrl('player')}" alt="Du" width="64" height="64" />
       <div>
         <div class="brand">MetroBuilder</div>
-        <div class="mayor-title">${mayorTitle(g.level)}</div>
+        <div class="mayor-title">${mayorTitle(g.level)} · Lv ${g.level}</div>
         <div class="xp-wrap" title="${xp.cur}/${xp.need} XP">
-          <div class="xp-label">Lv ${g.level}${g.level >= MAX_LEVEL ? ' MAX' : ''}</div>
           <div class="xp-bar"><i style="width:${xp.pct}%"></i></div>
         </div>
       </div>
     </div>
-    <div class="stat">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
-    <div class="stat pulse-gold">💰 ${g.cash} <span>Credits</span></div>
-    <div class="stat ${net >= 0 ? 'sat-ok' : 'sat-bad'}">📉 ${net >= 0 ? '+' : ''}${net}<span>/18s</span></div>
-    <div class="stat">💎 ${g.gems}</div>
-    <div class="stat">👥 ${s.pop} <span>${s.jobs} Jobs</span></div>
-    <div class="stat ${satTone(s.sat)}">😊 ${s.sat}%</div>
-    <div class="stat">🏠 ${s.landAvg} <span>Wert</span></div>
-    <div class="stat">⭐ ${xp.cur}/${xp.need} <span>XP</span></div>
-    <div class="stat ${diffClass(difficulty(g.level).tier)}">⚔ ${difficulty(g.level).label}</div>
-    <div class="stat">🏆 #${g.mayorRank} <span>${m}m</span></div>
+    <div class="stat hud-primary pulse-gold">💰 ${g.cash}</div>
+    <div class="stat hud-primary">👥 ${s.pop}</div>
+    <div class="stat hud-primary ${satTone(s.sat)}">😊 ${s.sat}%</div>
+    <div class="stat hud-primary" title="Nachfrage">📶 ${dem}</div>
+    <div class="stat ${net >= 0 ? 'sat-ok' : 'sat-bad'}">${net >= 0 ? '+' : ''}${net}<span>/Tick</span></div>
+    <div class="stat hud-secondary">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
+    <div class="stat hud-secondary">💎 ${g.gems}</div>
+    <div class="stat hud-secondary">🏠 ${s.jobs} Jobs</div>
   `;
 }
 
@@ -723,13 +721,15 @@ function paintPanel() {
           s.services.find((x) => x.kind === 'health')?.load ?? 999,
         );
         const tr = g.traffic ?? computeTraffic(g);
-        return `<p class="muted">${tier.name}${tier.next ? ` → ${tier.next} (${tier.progress}%)` : ' · MAX'} · Stau ${tr.congestion}% · Spec: ${SPECS.find((x) => x.id === (g.specialization || 'none'))?.name}</p>
+        return `<p class="muted">${tier.name}${tier.next ? ` → ${tier.next} (${tier.progress}%)` : ' · MAX'} · Spec: ${SPECS.find((x) => x.id === (g.specialization || 'none'))?.name}</p>
+        <p class="muted">🚗 Stau ${tr.congestion}%${g.trafficGraph ? ` · ${g.trafficGraph.edgeCount} Straßenkanten` : ''}${tr.congestion > 55 ? ' — Mehr Kapazität (Highway/Bus) entlastet Pendler.' : ''}</p>
         <div class="row">${SPECS.map((sp) => `<button data-spec="${sp.id}" class="${g.specialization === sp.id ? 'active' : ''}" title="${sp.blurb}">${sp.icon} ${sp.name}</button>`).join('')}</div>
         <ul class="cause-list">${goals.map((gl) => `<li><span>${gl.done ? '✓' : '○'} ${gl.title}</span><strong class="${gl.done ? 'pos' : ''}">${gl.blurb}</strong></li>`).join('')}</ul>`;
       })()}
-      <h3>Bus (ÖPNV-Slice)</h3>
+      <h3>Buslinien</h3>
+      <p class="muted">Baue Depot + Stationen, dann Linie anlegen. Betrieb kostet Credits, entlastet Straßen.</p>
       <pre class="muted" style="white-space:pre-wrap;font-size:0.8rem">${busLinesSummary(g)}</pre>
-      <div class="row"><button id="a-bus-auto">Buslinie aus Stationen</button></div>
+      <div class="row"><button id="a-bus-auto" class="primary">Buslinie aus Haltestellen</button></div>
       <h3>Inventar</h3><div class="inv">${invHtml()}</div>
       <h3>Quests</h3>${questHtml()}
     `;
@@ -812,6 +812,35 @@ function wire() {
   });
   panel.querySelector('#a-demo')?.addEventListener('click', () => {
     if (!g.focus) return;
+    const c = cell(g, g.focus.x, g.focus.y);
+    if (!c?.b) {
+      say('Nichts da.');
+      return;
+    }
+    const important = !['road', 'highway'].includes(c.b.id);
+    if (important) {
+      const name = DEFS[c.b.id].name;
+      modal.innerHTML = `
+        <div class="modal">
+          <h2>Abriss?</h2>
+          <p class="muted">${name} entfernen? Du erhältst einen Teil der Baukosten zurück.</p>
+          <div class="row">
+            <button id="demo-yes" class="danger">Abriss bestätigen</button>
+            <button id="demo-no">Abbrechen</button>
+          </div>
+        </div>`;
+      modal.querySelector('#demo-yes')?.addEventListener('click', () => {
+        modal.innerHTML = '';
+        cmdDemolish(g, g.focus!.x, g.focus!.y, say);
+        sfxClick();
+        refresh();
+      });
+      modal.querySelector('#demo-no')?.addEventListener('click', () => {
+        modal.innerHTML = '';
+        sfxClick();
+      });
+      return;
+    }
     cmdDemolish(g, g.focus.x, g.focus.y, say);
     refresh();
   });
@@ -1084,6 +1113,10 @@ canvas.addEventListener('pointermove', (e) => {
   const p = pos(e);
   const w = view.toWorld(p.x, p.y);
   view.hover = { x: Math.round(w.x), y: Math.round(w.y) };
+  if (g.selected) {
+    const err = canPlace(g, view.hover.x, view.hover.y, g.selected);
+    view.placeOk = !err;
+  } else view.placeOk = null;
   if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pts.size === 2) {
     const [a, b] = [...pts.values()];
@@ -1134,11 +1167,16 @@ canvas.addEventListener('pointerup', (e) => {
     const ok = built.ok;
     if (ok) {
       view.spawnBurst(x, y, '#3ecf8e', 10);
-      view.floatAt(x, y, DEFS[g.selected].icon, '#3ecf8e');
+      const price = scaledCost(DEFS[g.selected].cost, g.level);
+      view.floatAt(x, y, `−${price}¢`, '#f0d56a');
       sfxPlace();
       void haptic('light');
-      if (g.tutorialStep === 1) advanceTutorial(2);
-    } else sfxError();
+      if (g.tutorialStep === 1 && (g.selected === 'road' || g.selected === 'highway')) advanceTutorial(2);
+      if (g.tutorialStep === 2 && g.selected === 'house') advanceTutorial(3);
+    } else {
+      sfxError();
+      // canPlace already toasted via say inside command
+    }
     if (g.selected !== 'road' && g.selected !== 'highway') g.selected = null;
     g.focus = { x, y };
     tab = 'city';
@@ -1174,20 +1212,26 @@ function frame() {
   requestAnimationFrame(frame);
 }
 
+/** Pause simulation when app is backgrounded (battery / resume safety). */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (g.gameSpeed !== 'pause') {
+      (g as Game & { _speedBeforeHide?: string })._speedBeforeHide = g.gameSpeed || '1x';
+      cmdSetGameSpeed(g, 'pause', () => {});
+    }
+  } else {
+    const prev = (g as Game & { _speedBeforeHide?: GameSpeed })._speedBeforeHide || '1x';
+    cmdSetGameSpeed(g, prev, () => {});
+  }
+});
+
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
     <div class="modal intro-modal">
-      <div class="intro-badge">v3 Candidate · Fundament</div>
-      <h2>Willkommen in MetroBuilder</h2>
-      <p class="muted">Baue deine Metropole — Simulation V3-Fundament, Verkehrsgraf, Bus-Slice, Events. Store-Submission vorbereitet (nicht veröffentlicht).</p>
-      <ol class="loop">
-        <li>Straßen legen & Produktionsketten starten</li>
-        <li>Wohnungen upgraden, Strom & Wasser halten</li>
-        <li>Handel, Club und Regionen freischalten</li>
-        <li>Spezialisieren, Städte verknüpfen, Events meistern</li>
-        <li>Als ${mayorTitle(1)} bis Level ${MAX_LEVEL} aufsteigen</li>
-      </ol>
-      <div class="row" style="margin-top:0.9rem"><button id="go" class="primary">Metropole starten</button></div>
+      <div class="intro-badge">MetroBuilder</div>
+      <h2>Baue deine Stadt</h2>
+      <p class="muted">Straßen, Einwohner, Jobs und Verkehr — alles auf einem Blick. Offline spielbar.</p>
+      <div class="row" style="margin-top:0.9rem"><button id="go" class="primary">Spielen</button></div>
     </div>`;
   modal.querySelector('#go')?.addEventListener('click', () => {
     localStorage.setItem('metrobuilder-full-intro', '1');
