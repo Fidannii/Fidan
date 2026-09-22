@@ -641,8 +641,12 @@ function paintPanel() {
       .filter((svc) => svc.capacity > 0 || s.pop > 0)
       .slice(0, 6)
       .map(
-        (svc) =>
-          `<div class="svc-row"><span>${svc.label}</span><div class="bar thin"><i style="width:${Math.min(100, svc.load)}%"></i></div><span class="muted">${svc.load}%</span></div>`,
+        (svc) => {
+          const missing = svc.capacity <= 0 && svc.demand > 0;
+          const label = missing ? 'fehlt' : `${Math.min(999, svc.load)}%`;
+          const width = missing ? 100 : Math.min(100, svc.load);
+          return `<div class="svc-row"><span>${svc.label}</span><div class="bar thin ${missing ? 'warn' : ''}"><i style="width:${width}%"></i></div><span class="muted">${label}</span></div>`;
+        },
       )
       .join('');
     body = `
@@ -1120,13 +1124,14 @@ function frame() {
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
     <div class="modal intro-modal">
-      <div class="intro-badge">v1.4 · Fertig</div>
+      <div class="intro-badge">v2.0 · Fertig</div>
       <h2>Willkommen in MetroBuilder</h2>
-      <p class="muted">Baue deine Metropole — Level bis 100, Daily, Erfolge, Audio & optional Echtgeld-IAP.</p>
+      <p class="muted">Baue deine Metropole — Simulation 2.0, Verkehr, Multi-City, Events & optional Echtgeld-IAP.</p>
       <ol class="loop">
         <li>Straßen legen & Produktionsketten starten</li>
         <li>Wohnungen upgraden, Strom & Wasser halten</li>
         <li>Handel, Club und Regionen freischalten</li>
+        <li>Spezialisieren, Städte verknüpfen, Events meistern</li>
         <li>Als ${mayorTitle(1)} bis Level ${MAX_LEVEL} aufsteigen</li>
       </ol>
       <div class="row" style="margin-top:0.9rem"><button id="go" class="primary">Metropole starten</button></div>
