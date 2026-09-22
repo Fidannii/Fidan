@@ -4,8 +4,6 @@ import {
   HOUSE,
   REGIONS,
   RES,
-  SAVE,
-  SIZE,
   WEEK_MS,
 } from './catalog';
 import type { BuildId, Game, RegionId, Res, TradeOffer } from './types';
@@ -26,6 +24,7 @@ import { TRADER_IDS, avatarMeta } from '../ui/avatars';
 import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL, xpNeeded } from './progression';
 import { iapDef, type IapSku } from '../iap/catalog';
 import { checkAchievements } from './meta';
+import { clearAllSaves, loadGame, persistGame } from './save';
 
 export type Say = (msg: string) => void;
 
@@ -326,13 +325,40 @@ export function buyNextLevel(g: Game, say: Say): boolean {
   return true;
 }
 
-/** Apply a real-money IAP reward (consumable) */
-export function grantIap(g: Game, sku: IapSku, say: Say): boolean {
+/** Apply a real-money IAP reward (consumable). Idempotent via receiptId. */
+export function grantIap(
+  g: Game,
+  sku: IapSku,
+  say: Say,
+  receiptId?: string,
+): boolean {
   const def = iapDef(sku);
   if (!def) {
     say('Unbekanntes Produkt.');
     return false;
   }
+  if (!g.iapReceipts) g.iapReceipts = {};
+  const rid = receiptId || `sku:${sku}:${Date.now()}`;
+  if (g.iapReceipts[rid]) {
+    say('Kauf bereits gutgeschrieben.');
+    return false;
+  }
+  // Also block rapid duplicate of same SKU without id (web/native double-fire)
+  const recentSku = Object.entries(g.iapReceipts).find(
+    ([k, t]) => k.startsWith(`sku:${sku}:`) && Date.now() - t < 8_000,
+  );
+  if (!receiptId && recentSku) {
+    say('Kauf bereits gutgeschrieben.');
+    return false;
+  }
+
+  g.iapReceipts[rid] = Date.now();
+  // prune old receipts (keep last ~80)
+  const entries = Object.entries(g.iapReceipts).sort((a, b) => b[1] - a[1]);
+  if (entries.length > 80) {
+    g.iapReceipts = Object.fromEntries(entries.slice(0, 80));
+  }
+
   if (g.level >= MAX_LEVEL) {
     say('Max-Level — Kauf gutgeschrieben als Credits.');
     g.cash += 500;
@@ -530,6 +556,13 @@ export function switchRegion(g: Game, id: RegionId, say: Say): Game | null {
   next.mayorRank = g.mayorRank;
   next.stats = g.stats;
   next.pendingLevelUps = g.pendingLevelUps;
+  next.achievements = g.achievements;
+  next.dailyStreak = g.dailyStreak;
+  next.lastDailyAt = g.lastDailyAt;
+  next.tutorialStep = g.tutorialStep;
+  next.mastery = g.mastery;
+  next.saveVersion = g.saveVersion;
+  next.iapReceipts = { ...g.iapReceipts };
   say(`Region: ${REGIONS[id].name}`);
   return next;
 }
@@ -562,49 +595,21 @@ export function prog(g: Game, x: number, y: number): number {
 }
 
 export function save(g: Game) {
-  try {
-    localStorage.setItem(SAVE, JSON.stringify(g));
-  } catch {
-    /* ignore */
-  }
+  persistGame(g);
 }
 
 export function load(): Game {
-  try {
-    const raw = localStorage.getItem(SAVE);
-    if (!raw) return createGame();
-    const g = JSON.parse(raw) as Game;
-    if (!g.cells?.length || g.size !== SIZE || !g.inv || !g.club) return createGame();
-    g.selected = null;
-    g.focus = null;
-    // migrate avatars
-    const defaults = ['player', 'lina', 'omar', 'mira'];
-    g.club.members = g.club.members.map((m, i) => ({
-      ...m,
-      avatar: m.avatar || defaults[i] || 'player',
-    }));
-    g.offers = (g.offers || []).map((o) => ({
-      ...o,
-      avatar: o.avatar || 'alex',
-    }));
-    if (!g.pendingLevelUps) g.pendingLevelUps = [];
-    if (!g.achievements) g.achievements = {};
-    if (g.dailyStreak == null) g.dailyStreak = 0;
-    if (g.lastDailyAt == null) g.lastDailyAt = 0;
-    if (g.tutorialStep == null) g.tutorialStep = 0;
-    if (g.mastery == null) g.mastery = 0;
-    if (!g.stats) g.stats = { collected: 0, upgrades: 0, disasters: 0, dailies: 0 };
-    if (g.stats.dailies == null) g.stats.dailies = 0;
-    return g;
-  } catch {
-    return createGame();
-  }
+  const result = loadGame();
+  return result.game;
+}
+
+/** Load with recovery metadata (for UI toast) */
+export function loadWithMeta() {
+  return loadGame();
 }
 
 export function reset(): Game {
-  localStorage.removeItem(SAVE);
-  localStorage.removeItem('metrobuilder-core-intro');
-  localStorage.removeItem('metrobuilder-full-intro');
+  clearAllSaves();
   return createGame();
 }
 

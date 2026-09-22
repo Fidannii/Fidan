@@ -33,6 +33,8 @@ export function ensureMeta(g: Game) {
   if (g.mastery == null) g.mastery = 0;
   if (!g.stats) g.stats = { collected: 0, upgrades: 0, disasters: 0, dailies: 0 };
   if (g.stats.dailies == null) g.stats.dailies = 0;
+  if (!g.iapReceipts) g.iapReceipts = {};
+  if (g.saveVersion == null) g.saveVersion = 5;
 }
 
 export type TutorialStep = {

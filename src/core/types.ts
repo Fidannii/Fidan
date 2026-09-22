@@ -160,4 +160,8 @@ export interface Game {
   tutorialStep: number;
   /** post-level-100 mastery score */
   mastery: number;
+  /** envelope / migration version */
+  saveVersion: number;
+  /** IAP transaction ids already granted (idempotency) */
+  iapReceipts: Record<string, number>;
 }

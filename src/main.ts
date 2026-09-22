@@ -16,7 +16,7 @@ import {
   demolish,
   expand,
   grantIap,
-  load,
+  loadWithMeta,
   place,
   prog,
   reset,
@@ -136,7 +136,8 @@ const toastEl = document.querySelector<HTMLElement>('#toast')!;
 const modal = document.querySelector<HTMLElement>('#modal-root')!;
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 
-let g: Game = load();
+const loaded = loadWithMeta();
+let g: Game = loaded.game;
 ensureMeta(g);
 const view = new View(canvas);
 view.center(g);
@@ -151,6 +152,12 @@ function say(msg: string) {
   toastT = window.setTimeout(() => {
     toastEl.hidden = true;
   }, 2200);
+}
+
+if (loaded.recovered) {
+  say(`Spielstand wiederhergestellt (${loaded.source}).`);
+} else if (loaded.source === 'legacy') {
+  say('Spielstand migriert.');
 }
 
 function advanceTutorial(to?: number) {
@@ -994,12 +1001,12 @@ setInterval(() => save(g), 4000);
 
 void initIap({
   say,
-  onGrant: (sku) => {
-    grantIap(g, sku, say);
+  onGrant: (sku, receiptId) => {
+    grantIap(g, sku, say, receiptId);
     refresh();
   },
 }).then(() => {
   if (tab === 'level') paintPanel();
 });
 
-say('Vollversion bereit.');
+if (loaded.source === 'new') say('Vollversion bereit.');

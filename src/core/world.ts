@@ -147,6 +147,8 @@ export function createGame(region: RegionId = 'valley'): Game {
     lastDailyAt: 0,
     tutorialStep: 0,
     mastery: 0,
+    saveVersion: 5,
+    iapReceipts: {},
   };
 }
 

@@ -14,7 +14,7 @@ export interface IapOfferView {
   canPurchase: boolean;
 }
 
-type GrantFn = (sku: IapSku) => void;
+type GrantFn = (sku: IapSku, receiptId?: string) => void;
 type SayFn = (msg: string) => void;
 
 let status: IapStatus = 'idle';
@@ -71,10 +71,10 @@ export function listIapOffers(): IapOfferView[] {
   }));
 }
 
-function applyPurchase(productId: string) {
+function applyPurchase(productId: string, transactionId?: string) {
   const def = iapDef(productId);
   if (!def || !grantReward) return;
-  grantReward(def.id);
+  grantReward(def.id, transactionId || undefined);
 }
 
 function waitMs(ms: number) {
@@ -166,10 +166,15 @@ async function bootNative(storeId: 'apple' | 'google'): Promise<void> {
     .approved(
       (transaction: {
         products: Array<{ id: string }>;
+        transactionId?: string;
         finish: () => Promise<void> | void;
       }) => {
         const id = transaction.products[0]?.id;
-        if (id) applyPurchase(id);
+        const txn =
+          transaction.transactionId ||
+          (transaction as { id?: string }).id ||
+          undefined;
+        if (id) applyPurchase(id, txn);
         // finish() = consume on Google Play / finish transaction on Apple
         void Promise.resolve(transaction.finish());
       },
