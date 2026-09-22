@@ -1,7 +1,9 @@
 # MetroBuilder — App-Store Veröffentlichung
 
-Diese Anleitung bringt dich von diesem Repo zum **App Store Upload**.
-Alles Nötige ist vorbereitet — auf dem Mac nur noch signieren & hochladen.
+**Kurzanleitung zum Hochladen (Android + iOS):** **[HOCHLADEN.md](./HOCHLADEN.md)**
+
+Diese Anleitung bringt dich von diesem Repo zum **Store Upload**.
+Alles Nötige ist vorbereitet — signieren & hochladen machst du mit deinen Developer-Accounts.
 
 ## Was schon fertig ist
 
@@ -11,10 +13,12 @@ Alles Nötige ist vorbereitet — auf dem Mac nur noch signieren & hochladen.
 | App-Icon 1024 (ohne Alpha) + Splash | ✅ |
 | Privacy Manifest (`PrivacyInfo.xcprivacy`) | ✅ |
 | Export Compliance (`ITSAppUsesNonExemptEncryption=NO`) | ✅ |
-| **Echtgeld-IAP** (Consumables, StoreKit) | ✅ `store/IAP_SETUP.md` |
-| Listing-Texte DE/EN | ✅ `store/APP_STORE_LISTING_*.md` |
+| **Echtgeld-IAP** (Consumables, StoreKit + Play Billing) | ✅ `store/IAP_SETUP.md` |
+| Listing-Texte DE/EN (Apple) | ✅ `store/APP_STORE_LISTING_*.md` |
+| Listing-Texte DE (Google Play) | ✅ `store/PLAY_STORE_LISTING_DE.md` |
 | Screenshots (iPhone 6.7" / 6.5") | ✅ `store/screenshots/` |
 | Privacy Policy (GitHub Pages) | ✅ `docs/privacy.html` |
+| Android Release-Signing Vorlage | ✅ `android/key.properties.example` |
 | Review-Notizen & Checkliste | ✅ |
 
 ## Voraussetzungen (nur du)

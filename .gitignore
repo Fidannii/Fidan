@@ -9,6 +9,12 @@ android/.gradle
 android/app/build
 android/build
 android/captures
+android/key.properties
+*.jks
+*.keystore
 ios/App/Pods
 ios/DerivedData
 *.xcuserstate
+*.aab
+*.ipa
+*.apk
