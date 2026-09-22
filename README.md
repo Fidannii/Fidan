@@ -1,30 +1,30 @@
 # MetroBuilder
 
-Städtebau-Simulation nach dem GDD — **voller lokaler Prototyp**.
+Städtebau-Simulation — **v1.0.0 store-ready** (Capacitor iOS/Android + PWA).
 
-## Spielen
+## Spielen (Web)
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Enthalten
+## App Store / Play Store
 
-- Kernschleife + volle Produktionsketten (Holz/Metall/Chemie/Kunststoff/Glas → Waren)
-- Straßen & Schnellstraße, Energie (fossil/Solar), Wasser, Abwasser, Müll
-- Polizei, Feuerwehr, Krankenhaus (Radien + Ausbau)
-- Parks, Schule, Uni, Kino, Stadion, Bahnhof, Flughafen, Depot, Wahrzeichen
-- Wohnstufen bis Turm, Zufriedenheit → Steuern
-- Credits / Gems / Schlüssel / Erweiterungs-Token
-- Globaler Markt + Handelsdepot-Angebote
-- Regionen: Tal, Wüste, Küste, Schnee
-- Club-Krieg & Bürgermeister-Wettbewerb (lokal simuliert)
-- Optionale Katastrophen mit Belohnungen
-- PWA (iOS/Android Home Screen)
+Siehe **[STORE_PUBLISH.md](./STORE_PUBLISH.md)** — Schritt-für-Schritt bis zum Upload.
 
-## Noch nicht (echtes Online)
+Kurz:
 
-- Server-autoritativer Multiplayer
-- Echte Spieler-Clubs / Matchmaking
-- Native Store-Builds (Unity/Capacitor)
+```bash
+npm install
+npm run icons
+npm run cap:sync
+npx cap open ios      # Mac + Xcode → Archive → App Store Connect
+npx cap open android  # Android Studio → AAB
+```
+
+Bundle ID: `com.fidani.metrobuilder`
+
+## Inhalt
+
+Kernschleife, volle GDD-Systeme, Isometrie, Avatare, Level-Aufstieg, Privacy-Seite, lokale Speicherung.

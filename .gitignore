@@ -3,3 +3,12 @@ dist
 .DS_Store
 *.local
 .dev.vars
+.idea
+*.iml
+android/.gradle
+android/app/build
+android/build
+android/captures
+ios/App/Pods
+ios/DerivedData
+*.xcuserstate

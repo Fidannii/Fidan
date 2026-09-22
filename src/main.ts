@@ -31,6 +31,26 @@ import { MAX_LEVEL, nextUnlocks, xpProgress } from './core/progression';
 import type { LevelUpEvent } from './core/progression';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
+import { Capacitor } from '@capacitor/core';
+
+async function initNative() {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar');
+    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setBackgroundColor({ color: '#050d12' });
+  } catch {
+    /* web */
+  }
+  try {
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    await SplashScreen.hide();
+  } catch {
+    /* optional */
+  }
+}
+
+void initNative();
 
 const hud = document.querySelector<HTMLElement>('#hud')!;
 const panel = document.querySelector<HTMLElement>('#panel')!;
@@ -313,6 +333,7 @@ function paintPanel() {
         <button id="a-expand" class="primary">🔓 Erweitern (${g.tokens}🎫)</button>
         <button id="a-disaster">🌪️ Katastrophe</button>
         <button id="a-reset" class="danger">Reset</button>
+        <a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener">Datenschutz</a>
       </div>
       <h3>Inventar</h3><div class="inv">${invHtml()}</div>
       <h3>Quests</h3>${questHtml()}
