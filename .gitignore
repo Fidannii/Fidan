@@ -18,3 +18,5 @@ ios/DerivedData
 *.aab
 *.ipa
 *.apk
+.release/
+*.zip
