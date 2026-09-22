@@ -1,0 +1,84 @@
+{
+  "identifier" : "MetroBuilder",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "XPSmall001",
+      "localizations" : [
+        {
+          "description" : "+200 XP für den Level-Aufstieg",
+          "displayName" : "XP Starter",
+          "locale" : "de"
+        },
+        {
+          "description" : "+200 XP for leveling up",
+          "displayName" : "XP Starter",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.fidani.metrobuilder.xp_small",
+      "referenceName" : "XP Small",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "XPMed001",
+      "localizations" : [
+        {
+          "description" : "+800 XP für den Level-Aufstieg",
+          "displayName" : "XP Booster",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "com.fidani.metrobuilder.xp_medium",
+      "referenceName" : "XP Medium",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "XPLarge001",
+      "localizations" : [
+        {
+          "description" : "+2500 XP für den Level-Aufstieg",
+          "displayName" : "XP Mega",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "com.fidani.metrobuilder.xp_large",
+      "referenceName" : "XP Large",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "1.99",
+      "familyShareable" : false,
+      "internalID" : "LevelUp001",
+      "localizations" : [
+        {
+          "description" : "Schaltet sofort das nächste Level frei",
+          "displayName" : "Sofort-Level",
+          "locale" : "de"
+        }
+      ],
+      "productID" : "com.fidani.metrobuilder.level_up",
+      "referenceName" : "Level Up",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "metrobuilder",
+    "_developerTeamID" : ""
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

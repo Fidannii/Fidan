@@ -2,6 +2,7 @@ import { Capacitor } from '@capacitor/core';
 import { IAP_PRODUCTS, iapDef, type IapSku } from './catalog';
 
 export type IapStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';
+export type IapStoreId = 'apple' | 'google' | 'web' | 'none';
 
 export interface IapOfferView {
   id: IapSku;
@@ -17,6 +18,7 @@ type GrantFn = (sku: IapSku) => void;
 type SayFn = (msg: string) => void;
 
 let status: IapStatus = 'idle';
+let activeStore: IapStoreId = 'none';
 let grantReward: GrantFn | null = null;
 let say: SayFn | null = null;
 let priceMap = new Map<string, string>();
@@ -27,8 +29,34 @@ function cdv(): any {
   return (globalThis as unknown as { CdvPurchase?: unknown }).CdvPurchase;
 }
 
+function detectStore(): IapStoreId {
+  if (!Capacitor.isNativePlatform()) return 'web';
+  const p = Capacitor.getPlatform();
+  if (p === 'ios') return 'apple';
+  if (p === 'android') return 'google';
+  return 'none';
+}
+
 export function getIapStatus(): IapStatus {
   return status;
+}
+
+export function getActiveStore(): IapStoreId {
+  return activeStore;
+}
+
+/** Human label for UI */
+export function storeLabel(store: IapStoreId = activeStore): string {
+  switch (store) {
+    case 'apple':
+      return 'Apple App Store';
+    case 'google':
+      return 'Google Play';
+    case 'web':
+      return 'Web-Demo';
+    default:
+      return 'Kein Store';
+  }
 }
 
 export function listIapOffers(): IapOfferView[] {
@@ -39,7 +67,7 @@ export function listIapOffers(): IapOfferView[] {
     price: priceMap.get(p.id) || p.fallbackPrice,
     kind: p.kind,
     xp: p.xp,
-    canPurchase: status === 'ready' || status === 'unavailable',
+    canPurchase: status === 'ready',
   }));
 }
 
@@ -49,7 +77,27 @@ function applyPurchase(productId: string) {
   grantReward(def.id);
 }
 
-/** Initialize StoreKit / Play Billing (or web sandbox). */
+function waitMs(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Wait until Cordova/Capacitor bridge exposes CdvPurchase (native only). */
+async function waitForCdv(timeoutMs = 8000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (cdv()?.store) return true;
+    try {
+      await import('cordova-plugin-purchase/www/store.js');
+    } catch {
+      /* ignore */
+    }
+    if (cdv()?.store) return true;
+    await waitMs(200);
+  }
+  return !!cdv()?.store;
+}
+
+/** Initialize Apple App Store (StoreKit) and/or Google Play Billing. */
 export function initIap(opts: { onGrant: GrantFn; say: SayFn }): Promise<void> {
   grantReward = opts.onGrant;
   say = opts.say;
@@ -60,11 +108,15 @@ export function initIap(opts: { onGrant: GrantFn; say: SayFn }): Promise<void> {
 
 async function boot(): Promise<void> {
   status = 'loading';
+  activeStore = detectStore();
   try {
-    if (Capacitor.isNativePlatform()) {
-      await bootNative();
-    } else {
+    if (activeStore === 'web') {
       await bootWebSandbox();
+    } else if (activeStore === 'apple' || activeStore === 'google') {
+      await bootNative(activeStore);
+    } else {
+      status = 'unavailable';
+      for (const p of IAP_PRODUCTS) priceMap.set(p.id, p.fallbackPrice);
     }
   } catch (e) {
     console.warn('[iap]', e);
@@ -78,28 +130,31 @@ async function bootWebSandbox(): Promise<void> {
   status = 'ready';
 }
 
-async function bootNative(): Promise<void> {
-  try {
-    await import('cordova-plugin-purchase/www/store.js');
-  } catch {
-    /* bridge may inject later */
-  }
+async function bootNative(storeId: 'apple' | 'google'): Promise<void> {
+  const ok = await waitForCdv();
   const Cdv = cdv();
-  if (!Cdv?.store) {
+  if (!ok || !Cdv?.store) {
     status = 'unavailable';
     for (const p of IAP_PRODUCTS) priceMap.set(p.id, p.fallbackPrice);
-    say?.('IAP-Plugin nicht geladen — Capability & Sync prüfen.');
+    say?.(
+      storeId === 'apple'
+        ? 'Apple IAP nicht geladen — In-App Purchase Capability in Xcode prüfen.'
+        : 'Google Play Billing nicht geladen — Play Console & Billing Library prüfen.',
+    );
     return;
   }
 
   const { store, ProductType, Platform, LogLevel } = Cdv;
   store.verbosity = LogLevel.INFO;
 
+  const platform = storeId === 'apple' ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY;
+
+  // Register the same SKUs for the active store (Apple App Store oder Google Play)
   store.register(
     IAP_PRODUCTS.map((p) => ({
       id: p.id,
       type: ProductType.CONSUMABLE,
-      platform: Capacitor.getPlatform() === 'ios' ? Platform.APPLE_APPSTORE : Platform.GOOGLE_PLAY,
+      platform,
     })),
   );
 
@@ -109,50 +164,69 @@ async function bootNative(): Promise<void> {
       if (product.pricing?.price) priceMap.set(product.id, product.pricing.price);
     })
     .approved(
-      (transaction: { products: Array<{ id: string }>; finish: () => Promise<void> | void }) => {
+      (transaction: {
+        products: Array<{ id: string }>;
+        finish: () => Promise<void> | void;
+      }) => {
         const id = transaction.products[0]?.id;
         if (id) applyPurchase(id);
+        // finish() = consume on Google Play / finish transaction on Apple
         void Promise.resolve(transaction.finish());
       },
-    )
-    .finished(() => {
-      /* consumed */
-    });
+    );
 
-  store.error((err: { message?: string }) => {
-    say?.(err?.message || 'Kauf fehlgeschlagen.');
+  store.error((err: { code?: number; message?: string }) => {
+    const msg = err?.message || 'Kauf fehlgeschlagen.';
+    // Ignore cancelled purchases as hard errors in UI toast noise if cancelled
+    if (/cancel|abgebrochen|user_cancelled/i.test(msg)) {
+      say?.('Kauf abgebrochen.');
+      return;
+    }
+    say?.(`${storeLabel(storeId)}: ${msg}`);
   });
 
-  const platforms =
-    Capacitor.getPlatform() === 'ios'
-      ? [Platform.APPLE_APPSTORE]
-      : Capacitor.getPlatform() === 'android'
-        ? [Platform.GOOGLE_PLAY]
-        : [Platform.TEST];
+  const errors = await store.initialize([platform]);
+  if (Array.isArray(errors) && errors.length) {
+    console.warn('[iap] init errors', errors);
+  }
 
-  await store.initialize(platforms);
+  // Pull localized prices from the live store
+  try {
+    if (typeof store.update === 'function') await store.update();
+  } catch {
+    /* optional */
+  }
 
   for (const p of IAP_PRODUCTS) {
-    const found = store.get(p.id);
+    const found = store.get(p.id, platform) || store.get(p.id);
     const price = found?.pricing?.price;
-    if (price) priceMap.set(p.id, price);
-    else priceMap.set(p.id, p.fallbackPrice);
+    priceMap.set(p.id, price || p.fallbackPrice);
   }
 
   status = 'ready';
+  say?.(
+    storeId === 'apple'
+      ? 'Apple App Store verbunden.'
+      : 'Google Play Billing verbunden.',
+  );
 }
 
-/** Start purchase flow for a product */
+/** Start purchase via Apple App Store or Google Play */
 export async function purchaseIap(sku: IapSku): Promise<boolean> {
-  if (status !== 'ready' && status !== 'unavailable') {
+  if (status === 'loading') {
     say?.('Store lädt noch…');
     return false;
   }
 
-  if (!Capacitor.isNativePlatform()) {
+  if (activeStore === 'web') {
     applyPurchase(sku);
-    say?.('Demo-Kauf (Web) — in der App mit Echtgeld über den Store.');
+    say?.('Demo-Kauf (Web). Echtgeld nur in Apple App Store / Google Play App.');
     return true;
+  }
+
+  if (status !== 'ready') {
+    say?.(`${storeLabel()} nicht bereit. Produkte in der Console anlegen?`);
+    return false;
   }
 
   const Cdv = cdv();
@@ -161,10 +235,19 @@ export async function purchaseIap(sku: IapSku): Promise<boolean> {
     return false;
   }
 
-  const product = Cdv.store.get(sku);
+  const platform =
+    activeStore === 'apple'
+      ? Cdv.Platform.APPLE_APPSTORE
+      : Cdv.Platform.GOOGLE_PLAY;
+
+  const product = Cdv.store.get(sku, platform) || Cdv.store.get(sku);
   const offer = product?.getOffer?.();
   if (!offer) {
-    say?.('Produkt nicht im Store gefunden. In App Store Connect anlegen.');
+    say?.(
+      activeStore === 'apple'
+        ? 'Produkt fehlt in App Store Connect (gleiche Product ID).'
+        : 'Produkt fehlt in Google Play Console (gleiche Product ID).',
+    );
     return false;
   }
 
@@ -176,10 +259,13 @@ export async function purchaseIap(sku: IapSku): Promise<boolean> {
   return true;
 }
 
-/** Restore purchases */
+/**
+ * Restore: relevant for Apple ID / Play account ownership.
+ * Consumables are usually not restorable; still required UX on iOS.
+ */
 export async function restoreIap(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) {
-    say?.('Wiederherstellen nur in der App Store Version.');
+  if (activeStore === 'web') {
+    say?.('Wiederherstellen nur in der App (Apple-ID / Google-Konto).');
     return;
   }
   const Cdv = cdv();
@@ -187,6 +273,15 @@ export async function restoreIap(): Promise<void> {
     say?.('Store nicht bereit.');
     return;
   }
-  await Cdv.store.restorePurchases();
-  say?.('Käufe wiederhergestellt.');
+  try {
+    await Cdv.store.restorePurchases();
+    say?.(
+      activeStore === 'apple'
+        ? 'Mit Apple-ID synchronisiert (App Store / iCloud-Konto).'
+        : 'Mit Google-Konto synchronisiert (Play Store).',
+    );
+  } catch (e) {
+    say?.('Wiederherstellen fehlgeschlagen.');
+    console.warn('[iap] restore', e);
+  }
 }

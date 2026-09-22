@@ -41,7 +41,7 @@ import {
   xpProgress,
 } from './core/progression';
 import type { LevelUpEvent } from './core/progression';
-import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus } from './iap/iap';
+import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus, getActiveStore, storeLabel } from './iap/iap';
 import type { IapSku } from './iap/catalog';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
@@ -245,19 +245,24 @@ function paintPanel() {
               const lvlCost = buyLevelCost(g);
               const remain = xp.need - xp.cur;
               const iap = listIapOffers();
+              const store = getActiveStore();
               const iapNote =
                 getIapStatus() === 'ready'
-                  ? Capacitor.isNativePlatform()
-                    ? 'Zahlung über App Store / Google Play.'
-                    : 'Web-Demo: Käufe sind Sandbox (kein Echtgeld). In der iOS-App = StoreKit.'
-                  : 'Store wird geladen…';
+                  ? store === 'apple'
+                    ? 'Zahlung über Apple App Store (Apple-ID / iCloud-Konto).'
+                    : store === 'google'
+                      ? 'Zahlung über Google Play Billing.'
+                      : 'Web-Demo (kein Echtgeld). Auf dem Handy: Apple App Store oder Google Play.'
+                  : getIapStatus() === 'loading'
+                    ? `${storeLabel(store)} wird verbunden…`
+                    : `${storeLabel(store)} nicht bereit — Produkte in der Console prüfen.`;
               return `
-      <h3>Echtgeld (In-App-Kauf)</h3>
+      <h3>Echtgeld · ${storeLabel(store)}</h3>
       <p class="muted">${iapNote}</p>
       <div class="shop-grid iap-grid">
         ${iap
           .map(
-            (o) => `<button data-iap="${o.id}" class="shop-btn iap-btn" ${g.level >= MAX_LEVEL ? 'disabled' : ''}>
+            (o) => `<button data-iap="${o.id}" class="shop-btn iap-btn" ${g.level >= MAX_LEVEL || getIapStatus() === 'loading' ? 'disabled' : ''}>
               <strong>${o.title}</strong>
               <span class="muted">${o.blurb}</span>
               <span class="cost euro">${o.price}</span>
@@ -265,7 +270,7 @@ function paintPanel() {
           )
           .join('')}
       </div>
-      <div class="row"><button id="a-iap-restore" class="ghost">Käufe wiederherstellen</button></div>
+      <div class="row"><button id="a-iap-restore" class="ghost">Käufe wiederherstellen (${store === 'apple' ? 'Apple-ID' : store === 'google' ? 'Google' : 'Store'})</button></div>
       <h3>Mit Credits (Soft)</h3>
       <p class="muted">XP oder Level auch mit 💰 Spiel-Credits.</p>
       <div class="shop-grid">

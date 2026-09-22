@@ -60,13 +60,21 @@ Optional mit `ios/exportOptions.plist` nach dem Archive.
 
 Altersfreigabe **9+**, Kategorie **Spiele → Simulation**, **IAP aktiv** (Consumables), kein Tracking.
 
-## In-App-Käufe (Echtgeld)
+## In-App-Käufe (Echtgeld) — Apple + Google
 
-Siehe **[store/IAP_SETUP.md](./store/IAP_SETUP.md)** — Product IDs in App Store Connect anlegen + Xcode Capability **In-App Purchase**.
+Vollständige Anleitung: **[store/IAP_SETUP.md](./store/IAP_SETUP.md)**
 
-Produkt-IDs:
+| Store | Technik | Wo anlegen |
+|-------|---------|------------|
+| **Apple App Store** | StoreKit (Apple-ID) | App Store Connect |
+| **Google Play** | Play Billing 7 | Play Console |
+
+Product IDs (beide Stores gleich):
 - `com.fidani.metrobuilder.xp_small` / `_medium` / `_large`
 - `com.fidani.metrobuilder.level_up`
+
+Xcode: Capability **In-App Purchase**  
+Optional lokal: Schema → StoreKit Configuration → `ios/App/StoreKitConfig.storekit`
 
 
 ## Screenshots neu erzeugen (optional)

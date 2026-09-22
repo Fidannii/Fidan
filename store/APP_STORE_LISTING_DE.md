@@ -1,4 +1,4 @@
-# App Store Connect Listing — MetroBuilder 1.0.0
+# App Store Connect Listing — MetroBuilder 1.3.0
 
 Copy-paste ready. Bundle ID: `com.fidani.metrobuilder`
 
@@ -9,7 +9,7 @@ MetroBuilder
 Städtebau-Simulation
 
 ## Promotional Text (≤170)
-Baue deine Metropole: Produktion, Infrastruktur, Club & Level-Aufstieg — offline spielbar.
+Baue deine Metropole bis Level 100 — optional mit In-App-Käufen für XP & Sofort-Level.
 
 ## Description
 MetroBuilder ist eine Städtebau-Simulation:
@@ -17,16 +17,17 @@ MetroBuilder ist eine Städtebau-Simulation:
 • Produktionsketten (Holz → Bretter → Upgrades)
 • Infrastruktur, Dienste und Spezialgebäude
 • Handel, Club-Krieg und Regionen
-• Level-Aufstieg mit Freischaltungen bis Level 30
+• Level-Aufstieg bis Level 100 mit steigender Schwierigkeit
+• Optional: XP-Pakete & Sofort-Level als In-App-Käufe
 • Offline spielbar — Fortschritt lokal gespeichert
 
-Kernfortschritt ist ohne Zahlung erreichbar. Credits, Gems und Schlüssel sind virtuelle Spielwährungen zur Zeitersparnis.
+Kernfortschritt ist ohne Zahlung erreichbar. Credits sind Soft Currency. Echtgeld-Käufe laufen über den App Store (Consumables).
 
 ## Keywords (≤100 chars, comma-separated)
 Städtebau,Simulation,Stadt,Bauen,Strategie,Idle,Wirtschaft,Metropole
 
 ## What's New (1.3.0)
-Echtgeld-In-App-Käufe: XP-Pakete und Sofort-Level über App Store / Google Play. Parallel Soft-Credits. Level 1–100 mit steigender Schwierigkeit.
+Echtgeld-In-App-Käufe: XP-Pakete und Sofort-Level über den App Store. Parallel Soft-Credits. Level 1–100 mit steigender Schwierigkeit.
 
 ## Category
 Primary: Games → Simulation
@@ -37,7 +38,6 @@ Secondary: Games → Strategy
 
 ## Privacy Policy URL
 https://fidannii.github.io/Fidan/privacy.html
-(oder nach Aktivierung von GitHub Pages → Settings → Pages → Deploy from branch `main` / folder `/docs`)
 
 ## Support URL
 https://github.com/Fidannii/Fidan
@@ -46,7 +46,7 @@ https://github.com/Fidannii/Fidan
 © 2026 Fidani Fidani
 
 ## Review Notes
-MetroBuilder is an offline city builder. No login. Progress is stored on-device.
-Tap through the intro, place roads, open the “Aufstieg” tab.
-Virtual currencies (Credits/Gems) are soft currency; no real-money IAP in 1.0.0.
-Export compliance: app uses only standard HTTPS / no custom encryption → ITSAppUsesNonExemptEncryption = NO.
+MetroBuilder is an offline city builder. No login.
+Open the “Aufstieg” tab for XP progress and In-App Purchases (consumable XP packs + one-level boost).
+Soft-currency credit packs also available. Core progress reachable without paying.
+Export compliance: ITSAppUsesNonExemptEncryption = NO.
