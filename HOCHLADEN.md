@@ -1,16 +1,16 @@
 # MetroBuilder — Hochladen in Google Play + Apple App Store
 
-**Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip  
-**Download-Seite:** `docs/download.html` → https://fidannii.github.io/Fidan/download.html  
-**App Store Start (kurz):** **[APPSTORE_START.md](./APPSTORE_START.md)**
+**Download-ZIP:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip  
+**Download-Seite:** https://fidannii.github.io/Fidan/download.html  
+**Kurzstart:** **[APPSTORE_START.md](./APPSTORE_START.md)**
 
 Ja: Das Spiel ist für **Android und iOS** entwickelt (Capacitor).  
 Ein Code → zwei native Apps:
 
 | Plattform | Store | Package / Bundle ID | Version |
 |-----------|-------|---------------------|---------|
-| **Android** | [Google Play Console](https://play.google.com/console) | `com.fidani.metrobuilder` | 3.0.0 (versionCode 10) |
-| **iOS** | [App Store Connect](https://appstoreconnect.apple.com) | `com.fidani.metrobuilder` | 3.0.0 (Build 10) |
+| **Android** | [Google Play Console](https://play.google.com/console) | `com.fidani.metrobuilder` | 3.0.0 (versionCode **12**) |
+| **iOS** | [App Store Connect](https://appstoreconnect.apple.com) | `com.fidani.metrobuilder` | 3.0.0 (Build **12**) |
 
 > „iCloud App Store“ = **Apple App Store**. Käufe laufen über die **Apple-ID** (dieselbe wie iCloud).
 
@@ -21,7 +21,7 @@ Ein Code → zwei native Apps:
 1. **Google Play Developer** (~25 USD einmalig) → Android hochladen  
 2. **Apple Developer Program** (99 USD/Jahr) + **Mac mit Xcode 16+** → iOS hochladen  
 3. Privacy-URL live: `https://fidannii.github.io/Fidan/privacy.html`  
-   (GitHub → Repo Settings → Pages → Branch `main`, Folder `/docs`)
+   (GitHub → Repo Settings → Pages → Branch mit `/docs`)
 
 Ohne diese Accounts kann niemand die App in die Stores stellen — der Code und die Projekte liegen fertig im Repo.
 
@@ -30,10 +30,14 @@ Ohne diese Accounts kann niemand die App in die Stores stellen — der Code und 
 ## Repo runterladen
 
 ```bash
+# Variante A — direkter ZIP-Download (Browser)
+# https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip
+
+# Variante B — Git
 git clone https://github.com/Fidannii/Fidan.git
 cd Fidan
-git checkout cursor/metrobuilder-game-app-7864   # oder main nach Merge
-npm install
+git checkout cursor/metrobuilder-rc-harden-7864
+npm ci
 npm run cap:sync
 ```
 
@@ -42,7 +46,7 @@ Danach:
 - Android: `npx cap open android` → Android Studio  
 - iOS (nur Mac): `npx cap open ios` → Xcode  
 
----
+Store-Texte (final): `store/final/`
 
 ## A) Google Play Store (Android) — Schritt für Schritt
 

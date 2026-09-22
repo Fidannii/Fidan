@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MetroBuilder — Download (Store RC)</title>
+    <title>MetroBuilder — Download für App Store &amp; Play Store</title>
     <style>
       :root {
         --bg: #050d12;
@@ -27,7 +27,7 @@
         padding: 1.5rem;
       }
       main {
-        width: min(560px, 100%);
+        width: min(580px, 100%);
         background: linear-gradient(165deg, rgba(12, 26, 34, 0.96), rgba(5, 13, 18, 0.98));
         border: 1px solid rgba(62, 207, 142, 0.28);
         border-radius: 22px;
@@ -68,6 +68,7 @@
         font-size: 0.82rem;
         color: var(--gold);
         margin-bottom: 1.1rem;
+        word-break: break-all;
       }
       a.btn {
         display: inline-block;
@@ -78,7 +79,7 @@
         padding: 0.9rem 1.45rem;
         border-radius: 14px;
         box-shadow: 0 10px 28px rgba(62, 207, 142, 0.28);
-        margin: 0.25rem;
+        margin: 0.35rem;
       }
       a.btn.secondary {
         color: #cfeadf;
@@ -101,41 +102,64 @@
         color: var(--muted);
       }
       .meta a { color: var(--gold); }
+      .platforms {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 0.75rem 0 1rem;
+      }
+      .platforms span {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.35rem 0.65rem;
+        border-radius: 999px;
+        border: 1px solid rgba(94, 234, 180, 0.35);
+        color: #cfeadf;
+      }
     </style>
   </head>
   <body>
     <main>
-      <div class="badge">v3.0.0 · Store RC Final</div>
+      <div class="badge">v3.0.0 · iOS + Android · Build 12</div>
       <h1>MetroBuilder</h1>
       <p>
-        Release Candidate für externe Store-Schritte (Signing, TestFlight, Play Internal).
-        Kein Anspruch „bereits im Store live“.
+        Fertiges Projekt zum Hochladen in den <strong style="color:#e8f2f6">Apple App Store</strong>
+        und den <strong style="color:#e8f2f6">Google Play Store</strong>.
+        Signing und Accounts machst du lokal auf deinem Mac / mit Android Studio.
       </p>
-      <div class="id">com.fidani.metrobuilder · Build 12 · Save v8</div>
+      <div class="platforms">
+        <span>Apple App Store</span>
+        <span>Google Play</span>
+        <span>Offline spielbar</span>
+      </div>
+      <div class="id">com.fidani.metrobuilder · Save v8 · 71 Tests</div>
+
       <a
         class="btn"
         href="https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip"
       >
-        Source-Branch als ZIP
+        Jetzt ZIP herunterladen
       </a>
       <a
         class="btn secondary"
-        href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/docs/EXTERNAL_STORE_STEPS.md"
+        href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/APPSTORE_START.md"
       >
-        Externe Store-Schritte
+        Start-Anleitung (iOS + Android)
       </a>
+
       <ol>
-        <li><strong>ZIP entpacken</strong> → <code>npm ci</code> → <code>npm test</code> → <code>npm run cap:sync</code></li>
-        <li><strong>Mac:</strong> <code>cd ios/App && pod install && open App.xcworkspace</code></li>
-        <li><strong>Xcode:</strong> Team → Archive → TestFlight</li>
-        <li><strong>Android:</strong> lokaler Keystore → signed AAB → Play Internal</li>
+        <li><strong>ZIP entpacken</strong> → <code>npm ci</code> → <code>npm run cap:sync</code></li>
+        <li><strong>iOS (Mac):</strong> <code>cd ios/App && pod install && open App.xcworkspace</code> → Team → Archive → TestFlight</li>
+        <li><strong>Android:</strong> Keystore lokal → Signed AAB → Play Console Internal Test</li>
+        <li>Store-Texte aus <code>store/final/</code> · Privacy bereits: Link unten</li>
       </ol>
+
       <p class="meta">
         Privacy: <a href="./privacy.html">privacy.html</a>
-        · Report:
-        <a href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/docs/METROBUILDER_V3_STORE_SUBMISSION_READINESS_REPORT.md">Submission Report</a>
-        · SHA256:
-        <code>79ed7c03c1535e0c2811339fc0e0c4fad04a9102dbc6125d0f0d937e0b1b0ce0</code>
+        · Ausführlich: <a href="https://github.com/Fidannii/Fidan/blob/cursor/metrobuilder-rc-harden-7864/HOCHLADEN.md">HOCHLADEN.md</a>
+        · SHA256 Paket:
+        <code>90d31a6b2338a78be61e9b02866099c2101cea4104d5f6fb2095829024f3a18a</code>
       </p>
     </main>
   </body>

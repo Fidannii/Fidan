@@ -1,69 +1,85 @@
-# MetroBuilder 2.0.0 — App Store Upload (START HIER)
+# MetroBuilder 3.0.0 — App Store Upload (START HIER)
 
-**Bundle ID:** `com.fidani.metrobuilder`  
-**Version:** 2.0.0 · Build 10  
+**Bundle / Package ID:** `com.fidani.metrobuilder`  
+**Version:** 3.0.0 · **Build / versionCode:** 12  
 
-Du brauchst: **Mac + Xcode 16+** + **Apple Developer Program** (99 USD/Jahr).  
-Eine fertige signierte IPA kann niemand ohne *dein* Apple-Team erzeugen — dieses Paket ist dafür vorbereitet.
+Ein Code → **iOS (App Store)** + **Android (Google Play)**.
 
 ---
 
-## 1) ZIP entpacken & vorbereiten
+## Download
+
+| Was | Link |
+|-----|------|
+| **ZIP (dieser Branch)** | https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-rc-harden-7864.zip |
+| **Download-Seite** | https://fidannii.github.io/Fidan/download.html |
+| **Privacy** | https://fidannii.github.io/Fidan/privacy.html |
+
+Fertiges Paket-Artefakt (Cloud Agent): `MetroBuilder-3.0.0-AppStore-iOS-Android.zip`
+
+Du brauchst fürs Hochladen:
+- **Apple:** Mac + Xcode + Apple Developer Program (Individual)
+- **Google:** Android Studio + Play Developer Account + eigener Keystore
+
+Ohne Accounts kann niemand eine signierte IPA/AAB erzeugen — das Projekt ist dafür vorbereitet.
+
+---
+
+## 1) Entpacken & vorbereiten
 
 ```bash
-cd MetroBuilder-2.0.0-appstore   # Ordnername nach Entpacken
-npm install
+cd MetroBuilder-3.0.0-AppStore   # oder Ordnername nach GitHub-ZIP
+npm ci
+npm test          # erwartet 71 PASS
 npm run cap:sync
-cd ios/App
-pod install                     # einmalig, braucht CocoaPods
-open App.xcworkspace            # WICHTIG: .xcworkspace, nicht .xcodeproj
 ```
 
-Oder kürzer aus dem Projektroot:
+---
+
+## 2) iOS → App Store / TestFlight (Mac)
 
 ```bash
-npm install && npm run cap:ios
+cd ios/App
+pod install
+open App.xcworkspace
 ```
 
----
+In Xcode:
+1. Target **App** → **Signing & Capabilities** → dein Team  
+2. Bundle ID bleibt `com.fidani.metrobuilder`  
+3. Capability **In-App Purchase**  
+4. Destination: **Any iOS Device (arm64)**  
+5. **Product → Archive** → Upload → TestFlight  
 
-## 2) In Xcode (5 Minuten)
-
-1. Links Target **App** wählen  
-2. **Signing & Capabilities** → Team = dein Apple Developer Team  
-3. Bundle Identifier bleibt **`com.fidani.metrobuilder`**  
-4. **+ Capability** → **In-App Purchase**  
-5. Oben Destination: **Any iOS Device (arm64)** (kein Simulator)  
-6. Menü **Product → Archive**  
-7. Organizer → **Distribute App → App Store Connect → Upload**
-
-`ios/exportOptions.plist` ist für App Store Connect Upload vorbereitet (Automatic Signing).
+Store-Texte: `store/final/APPLE_METADATA_DE.md`  
+Details: `HOCHLADEN.md` · Checkliste: `docs/APPLE_APP_STORE_CONNECT_CHECKLIST.md`
 
 ---
 
-## 3) App Store Connect
+## 3) Android → Google Play
 
-1. [appstoreconnect.apple.com](https://appstoreconnect.apple.com) → neue App  
-2. Bundle ID: `com.fidani.metrobuilder`  
-3. Texte: `store/APP_STORE_LISTING_DE.md` (EN: `store/APP_STORE_LISTING_EN.md`)  
-4. Screenshots: `store/screenshots/` (mind. iPhone 6.7")  
-5. Privacy: `https://fidannii.github.io/Fidan/privacy.html`  
-6. IAP: `store/IAP_SETUP.md` (4 Consumables, gleiche IDs wie Android)  
-7. Build auswählen → **Zur Prüfung einreichen**
+```bash
+npx cap open android
+```
 
-Kurz-Checkliste: `APP_STORE_CHECKLIST.md`  
-Play Store parallel: `HOCHLADEN.md`
+In Android Studio:
+1. Keystore lokal erzeugen (nie committen) — siehe `HOCHLADEN.md`  
+2. **Build → Generate Signed Bundle** → `.aab`  
+3. Play Console → App `com.fidani.metrobuilder` → Internal testing  
+
+Store-Texte: `store/final/GOOGLE_METADATA_DE.md`  
+Checkliste: `docs/GOOGLE_PLAY_CONSOLE_CHECKLIST.md`
 
 ---
 
-## Was im ZIP liegt
+## Was enthalten ist
 
-| Ordner / Datei | Zweck |
-|----------------|--------|
-| `ios/` | Native iOS-Projekt (Capacitor 7, sync’d) |
-| `android/` | Native Android-Projekt (Play Store) |
-| `store/` | Listings, Screenshots, IAP |
+| Ordner | Zweck |
+|--------|--------|
+| `ios/` | Native iOS (Capacitor 7) |
+| `android/` | Native Android |
+| `store/final/` | Finale Store-Metadaten DE/EN |
 | `docs/privacy.html` | Datenschutz |
-| `HOCHLADEN.md` | Beide Stores ausführlich |
+| `qa/screens/` | QA-Referenz (finale Device-Screenshots noch extern) |
 
-**Nicht enthalten:** Signatur / IPA — die entsteht nur auf deinem Mac mit deinem Team.
+**Nicht enthalten:** Signatur / IPA / AAB — nur mit deinen Accounts auf deinem Rechner.
