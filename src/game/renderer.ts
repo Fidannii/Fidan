@@ -9,7 +9,7 @@ export class Renderer {
   ctx: CanvasRenderingContext2D;
   camX = 0;
   camY = 0;
-  scale = 1;
+  scale = 1.55;
   hover: { x: number; y: number } | null = null;
   showRadius = true;
 
