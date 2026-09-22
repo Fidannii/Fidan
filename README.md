@@ -4,7 +4,7 @@
 **Download-Seite:** https://fidannii.github.io/Fidan/download.html (nach Pages-Setup)  
 **App Store Start:** **[APPSTORE_START.md](./APPSTORE_START.md)**
 
-Städtebau-Simulation für **Android + iOS** — **v2.0.0** (Simulation Core · City Life · Traffic · Multi-City).
+Städtebau-Simulation für **Android + iOS** — **v3.0.0** (Simulation Core · City Life · Traffic · Multi-City).
 
 Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 
@@ -15,7 +15,7 @@ Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 | | |
 |--|--|
 | Bundle / Package ID | `com.fidani.metrobuilder` |
-| Version | **2.0.0** (Build / versionCode **9**) |
+| Version | **3.0.0** (Build / versionCode **10**) |
 | Android | Ordner `android/` |
 | iOS | Ordner `ios/` |
 

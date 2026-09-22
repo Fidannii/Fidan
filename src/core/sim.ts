@@ -27,10 +27,14 @@ import { checkAchievements } from './meta';
 import { clearAllSaves, loadGame, persistGame } from './save';
 import { switchCity as switchCityImpl, ensureCities, regionalTrade } from './cities';
 import { computeTraffic } from './traffic';
+import { recomputeTrafficGraph } from './trafficGraph';
 import { ensureProgression } from './cityProgress';
-import { ensureEvents, tickEvents } from './events';
+import { ensureEvents, tickEvents, applyPendingEffects } from './events';
 import { canUpgradeHouseSoft, getSim, refreshSim } from './systems';
+import { tickBus } from './bus';
+import { ensureRuntime, nowOf, syncRuntimeToGame } from './clock';
 import type { CitySim } from './types';
+import { maybeEvolveHouses } from './growth';
 
 export type Say = (msg: string) => void;
 
@@ -75,7 +79,7 @@ export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boo
   c.b = {
     id,
     level: 1,
-    jobAt: d.produce ? Date.now() : null,
+    jobAt: d.produce ? nowOf(g) : null,
     ready: 0,
     wear: 0,
   };
@@ -251,7 +255,7 @@ export function taxes(g: Game, say: Say, now = Date.now()) {
       ? ` · ${sim.causes[0].label} ${sim.causes[0].delta > 0 ? '+' : ''}${sim.causes[0].delta}`
       : '';
   say(
-    `Cashflow ${sign}${net}¢ (Steuern ${sim.cashflow.taxes} − Unterhalt ${sim.cashflow.maintenance + sim.cashflow.services}, Zfr. ${sim.sat}%)${why}`,
+    `Cashflow ${sign}${net}¢ (Einnahmen ${sim.cashflow.incomePerPeriod ?? sim.cashflow.taxes + sim.cashflow.commerce + sim.cashflow.industry} − Straßen ${sim.cashflow.roads ?? 0} · Services ${sim.cashflow.services} · Transport ${sim.cashflow.transport ?? 0} · Gebäude ${sim.cashflow.maintenance}, Zfr. ${sim.sat}%)${why}`,
   );
 }
 
@@ -572,8 +576,30 @@ export function tradeToRegion(
 }
 
 export function tick(g: Game, say: Say) {
-  const now = Date.now();
+  const t0 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  const rt = ensureRuntime(g);
+  // Advance sim clock from wall time (visual frame cadence)
+  rt.clock.advanceFromWall(
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now(),
+  );
+  const now = rt.clock.now();
+  g.simTimeMs = now;
+  g.gameSpeed = rt.clock.speed;
+
+  if (rt.clock.speed === 'pause') {
+    syncRuntimeToGame(g);
+    return;
+  }
+
+  const graph = recomputeTrafficGraph(g);
   g.traffic = computeTraffic(g);
+  // Blend graph congestion into legacy snapshot for UI compatibility
+  if (graph.edges.length) {
+    g.traffic.congestion = Math.round(graph.avgCongestion * 100);
+  }
+  const simQuick = getSim(g);
+  tickBus(g, simQuick.pop, graph.avgCongestion);
   ensureProgression(g);
   ensureEvents(g);
   tickProd(g, now);
@@ -582,7 +608,18 @@ export function tick(g: Game, say: Say) {
   tickWeek(g, say, now);
   refreshOffers(g, now);
   g.offers = g.offers.filter((o) => o.expires > now);
+  applyPendingEffects(g, say);
   tickEvents(g, say);
+  maybeEvolveHouses(g, now);
+  refreshSim(g);
+  syncRuntimeToGame(g);
+  const t1 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  g.metrics = {
+    ...(g.metrics || {}),
+    lastTickMs: Math.max(0, t1 - t0),
+    lastTrafficMs: graph.recomputeMs,
+  };
 }
 
 export function prog(g: Game, x: number, y: number): number {
@@ -599,26 +636,37 @@ export function prog(g: Game, x: number, y: number): number {
     g.region === 'snow',
     d.power > 0,
   );
-  return Math.min(1, (Date.now() - b.jobAt) / need);
+  return Math.min(1, (nowOf(g) - b.jobAt) / need);
 }
 
 export function save(g: Game) {
+  syncRuntimeToGame(g);
+  const t0 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
   persistGame(g);
+  const t1 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  g.metrics = { ...(g.metrics || {}), lastSaveMs: Math.max(0, t1 - t0) };
 }
 
 export function load(): Game {
   const result = loadGame();
+  ensureRuntime(result.game);
   return result.game;
 }
 
 /** Load with recovery metadata (for UI toast) */
 export function loadWithMeta() {
-  return loadGame();
+  const result = loadGame();
+  ensureRuntime(result.game);
+  return result;
 }
 
 export function reset(): Game {
   clearAllSaves();
-  return createGame();
+  const g = createGame();
+  ensureRuntime(g);
+  return g;
 }
 
 export {

@@ -55,10 +55,23 @@ export function computeTraffic(g: Game): TrafficSnap {
   };
 }
 
-/** Congestion 0–1 at a road cell (neighbor density heuristic) */
+/** Congestion 0–1 at a road cell — prefers Traffic V2 edge data */
 export function congestionAt(g: Game, x: number, y: number): number {
   const c = g.cells.find((t) => t.x === x && t.y === y);
   if (!c?.b || !isRoad(c.b.id)) return 0;
+  if (g.trafficGraph?.edgeCongestion) {
+    const id = `${x},${y}`;
+    let sum = 0;
+    let n = 0;
+    for (const [eid, cong] of Object.entries(g.trafficGraph.edgeCongestion)) {
+      if (eid.split('>').includes(id)) {
+        sum += cong;
+        n++;
+      }
+    }
+    if (n) return Math.min(1, sum / n);
+    return Math.min(1, g.trafficGraph.avgCongestion || 0);
+  }
   const snap = g.traffic ?? computeTraffic(g);
   const base = snap.congestion / 100;
   const boost = c.b.id === 'highway' ? 0.65 : 1;

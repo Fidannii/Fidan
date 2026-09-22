@@ -1,4 +1,4 @@
-# Download-Link — MetroBuilder 2.0.0 (App Store bereit)
+# Download-Link — MetroBuilder 2.0.0 (Store-Submission vorbereitet)
 
 ## Direkt-Download (ZIP vom Branch)
 
@@ -16,7 +16,7 @@ https://fidannii.github.io/Fidan/download.html
 
 ## Was du bekommst
 
-- iOS-Projekt (`ios/`, Bundle ID `com.fidani.metrobuilder`, v2.0.0 / Build 9)
+- iOS-Projekt (`ios/`, Bundle ID `com.fidani.metrobuilder`, v3.0.0 / Build 10)
 - Android-Projekt (`android/`)
 - Store-Listings + Screenshots + IAP-Setup
 - Startanleitung: **[APPSTORE_START.md](./APPSTORE_START.md)**

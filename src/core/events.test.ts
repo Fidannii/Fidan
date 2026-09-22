@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { createGame } from './world';
 import { ensureEvents, resolveEvent, tickEvents, eventHint } from './events';
+import { ensureRuntime } from './clock';
 import { clearAllSaves } from './save';
 
 describe('choice events', () => {
@@ -11,15 +12,19 @@ describe('choice events', () => {
     delete g.nextEventAt;
     delete g.activeEvent;
     delete g.eventPrep;
+    ensureRuntime(g);
     ensureEvents(g);
-    expect(g.nextEventAt).toBeGreaterThan(Date.now() - 1000);
+    expect(g.nextEventAt).toBeGreaterThan((g.simTimeMs || 0) - 1);
     expect(g.activeEvent).toBeNull();
     expect(g.eventPrep).toBe(0);
   });
 
   it('tickEvents spawns when due and pop sufficient', () => {
     const g = createGame();
-    g.nextEventAt = Date.now() - 1;
+    const rt = ensureRuntime(g);
+    rt.clock.simTimeMs = 100_000;
+    g.simTimeMs = 100_000;
+    g.nextEventAt = 1;
     g.activeEvent = null;
     const msgs: string[] = [];
     tickEvents(g, (m) => msgs.push(m));
@@ -29,6 +34,7 @@ describe('choice events', () => {
 
   it('resolveEvent invest costs cash; ignore clears event', () => {
     const g = createGame();
+    ensureRuntime(g);
     g.cash = 500;
     g.activeEvent = {
       id: 'festival',
@@ -57,6 +63,7 @@ describe('choice events', () => {
 
   it('eventHint returns string or null', () => {
     const g = createGame();
+    ensureRuntime(g);
     const h = eventHint(g);
     expect(h === null || typeof h === 'string').toBe(true);
   });

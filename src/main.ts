@@ -12,21 +12,17 @@ import {
   buyXpPack,
   cell,
   collect,
-  demolish,
   expand,
   grantIap,
   loadWithMeta,
-  place,
   prog,
   reset,
   save,
   sell,
   speedUp,
-  switchRegion,
   tick,
   triggerDisaster,
   unlockRegion,
-  upgradeHouse,
   upgradeService,
   cityStats,
   tradeToRegion,
@@ -37,12 +33,23 @@ import {
   SPECS,
   cityTierOf,
   ensureProgression,
-  setSpecialization,
   strategicGoals,
   type SpecId,
 } from './core/cityProgress';
-import { resolveEvent, ensureEvents, eventHint } from './core/events';
+import { ensureEvents, eventHint } from './core/events';
 import { ensureCities } from './core/cities';
+import { ensureRuntime, type GameSpeed } from './core/clock';
+import { busLinesSummary, ensureBus, cmdCreateBusLine } from './core/bus';
+import {
+  cmdBuildBuilding,
+  cmdDemolish,
+  cmdUpgradeBuilding,
+  cmdSetTaxRate,
+  cmdSetGameSpeed,
+  cmdAcceptEventChoice,
+  cmdSetSpecialization,
+  cmdSwitchCity,
+} from './game/commands';
 import {
   MAX_LEVEL,
   buyLevelCost,
@@ -155,6 +162,8 @@ ensureMeta(g);
 ensureProgression(g);
 ensureEvents(g);
 ensureCities(g);
+ensureBus(g);
+ensureRuntime(g);
 const view = new View(canvas);
 view.center(g);
 let tab: 'city' | 'market' | 'club' | 'regions' | 'level' | 'more' = 'city';
@@ -538,7 +547,7 @@ function paintPanel() {
     const unlockedAch = ACHIEVEMENTS.filter((a) => g.achievements[a.id]);
     body = `
       <h2>⚙️ Mehr</h2>
-      <p class="muted">MetroBuilder 2.0 — Daily, Erfolge, Cloud-Stub & Hilfe.</p>
+      <p class="muted">MetroBuilder 3.0-Candidate — Daily, Erfolge, Cloud-Stub & Hilfe.</p>
       <h3>Daily-Bonus</h3>
       <p class="muted">Serie: ${g.dailyStreak} Tag(e)${g.level >= MAX_LEVEL ? ` · Meisterschaft ${g.mastery}` : ''}</p>
       <div class="row">
@@ -559,10 +568,10 @@ function paintPanel() {
           </div>`;
         }).join('')}
       </div>
-      <h3>Cloud-Save (optional Stub)</h3>
-      <p class="muted">Vorbereitung für Apple/Google Cloud — lokal bleibt führend.</p>
+      <h3>Cloud-Save vorbereitet (Stub)</h3>
+      <p class="muted">Kein echter Cloud-Sync — nur lokaler Marker. Lokal bleibt führend.</p>
       <div class="row"><button id="a-cloud">☁️ Sync markieren</button></div>
-      <p class="muted">${g.cloudSyncAt ? `Letzter Sync: ${new Date(g.cloudSyncAt).toLocaleString('de')}` : 'Noch nie synchronisiert.'}</p>
+      <p class="muted">${g.cloudSyncAt ? `Letzter lokaler Marker: ${new Date(g.cloudSyncAt).toLocaleString('de')}` : 'Noch nie markiert.'}</p>
       <h3>Audio &amp; Feedback</h3>
       <div class="row">
         <button id="a-sfx" class="${audio.sfx ? 'active' : ''}">SFX ${audio.sfx ? 'An' : 'Aus'}</button>
@@ -654,13 +663,25 @@ function paintPanel() {
       <p class="muted">${s.houses} Häuser · ${s.pop} Einw. · ${s.jobs} Jobs · Arbeitslosigkeit ${s.unemployment}%
       ${g.disasterUntil && Date.now() < g.disasterUntil ? ' · 🌪️ Sturm aktiv' : ''}</p>
       <div class="cashflow-card">
-        <div class="cashflow-net ${cf.net >= 0 ? 'pos' : 'neg'}">${cf.net >= 0 ? '+' : ''}${cf.net}¢ <span>/ 18s</span></div>
+        <div class="cashflow-net ${cf.net >= 0 ? 'pos' : 'neg'}">${cf.net >= 0 ? '+' : ''}${cf.net}¢ <span>/ Periode</span></div>
         <div class="cashflow-grid">
           <span>Steuern +${cf.taxes}</span>
           <span>Gewerbe +${cf.commerce}</span>
           <span>Industrie +${cf.industry}</span>
-          <span>Unterhalt −${cf.maintenance}</span>
-          <span>Dienste −${cf.services}</span>
+          <span>Straßen −${cf.roads ?? 0}</span>
+          <span>Services −${cf.services}</span>
+          <span>Transport −${cf.transport ?? 0}</span>
+          <span>Gebäude −${cf.maintenance}</span>
+        </div>
+        <p class="muted">Steuersatz ${Math.round((g.taxRate ?? 1) * 100)}% · Tempo ${g.gameSpeed || '1x'} · Graph ${g.trafficGraph?.edgeCount ?? 0} Kanten</p>
+        <div class="row">
+          <button data-tax="0.8">Steuer 80%</button>
+          <button data-tax="1" class="${(g.taxRate ?? 1) === 1 ? 'active' : ''}">100%</button>
+          <button data-tax="1.2">120%</button>
+          <button data-speed="pause">⏸</button>
+          <button data-speed="1x" class="${(g.gameSpeed || '1x') === '1x' ? 'active' : ''}">1×</button>
+          <button data-speed="2x">2×</button>
+          <button data-speed="4x">4×</button>
         </div>
       </div>
       <div class="sat-meter ${satTone(s.sat)}">
@@ -706,6 +727,9 @@ function paintPanel() {
         <div class="row">${SPECS.map((sp) => `<button data-spec="${sp.id}" class="${g.specialization === sp.id ? 'active' : ''}" title="${sp.blurb}">${sp.icon} ${sp.name}</button>`).join('')}</div>
         <ul class="cause-list">${goals.map((gl) => `<li><span>${gl.done ? '✓' : '○'} ${gl.title}</span><strong class="${gl.done ? 'pos' : ''}">${gl.blurb}</strong></li>`).join('')}</ul>`;
       })()}
+      <h3>Bus (ÖPNV-Slice)</h3>
+      <pre class="muted" style="white-space:pre-wrap;font-size:0.8rem">${busLinesSummary(g)}</pre>
+      <div class="row"><button id="a-bus-auto">Buslinie aus Stationen</button></div>
       <h3>Inventar</h3><div class="inv">${invHtml()}</div>
       <h3>Quests</h3>${questHtml()}
     `;
@@ -772,7 +796,8 @@ function wire() {
   });
   panel.querySelector('#a-up')?.addEventListener('click', () => {
     if (!g.focus) return;
-    if (upgradeHouse(g, g.focus.x, g.focus.y, say)) {
+    const r = cmdUpgradeBuilding(g, g.focus.x, g.focus.y, say);
+    if (r.ok) {
       view.spawnBurst(g.focus.x, g.focus.y, '#7ad4ff', 18);
       view.floatAt(g.focus.x, g.focus.y, 'Upgrade!', '#7ad4ff');
       sfxUpgrade();
@@ -787,11 +812,36 @@ function wire() {
   });
   panel.querySelector('#a-demo')?.addEventListener('click', () => {
     if (!g.focus) return;
-    demolish(g, g.focus.x, g.focus.y, say);
+    cmdDemolish(g, g.focus.x, g.focus.y, say);
     refresh();
   });
   panel.querySelector('#a-expand')?.addEventListener('click', () => {
     if (expand(g, say)) sfxExpand();
+    else sfxError();
+    refresh();
+  });
+  panel.querySelectorAll('[data-tax]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const v = Number((el as HTMLElement).dataset.tax);
+      cmdSetTaxRate(g, v, say);
+      sfxClick();
+      refresh();
+    });
+  });
+  panel.querySelectorAll('[data-speed]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const sp = (el as HTMLElement).dataset.speed as GameSpeed;
+      cmdSetGameSpeed(g, sp, say);
+      sfxClick();
+      refresh();
+    });
+  });
+  panel.querySelector('#a-bus-auto')?.addEventListener('click', () => {
+    const stops = g.cells
+      .filter((c) => c.b && (c.b.id === 'station' || c.b.id === 'depot'))
+      .map((c) => ({ x: c.x, y: c.y }));
+    const r = cmdCreateBusLine(g, `Linie ${(g.busLines?.length || 0) + 1}`, stops, say);
+    if (r.ok) sfxBuy();
     else sfxError();
     refresh();
   });
@@ -816,20 +866,21 @@ function wire() {
     paintPanel();
   });
   panel.querySelector('#a-ev-invest')?.addEventListener('click', () => {
-    if (resolveEvent(g, 'invest', say)) {
+    const r = cmdAcceptEventChoice(g, 'invest', say);
+    if (r.ok) {
       sfxBuy();
       refresh();
     } else sfxError();
   });
   panel.querySelector('#a-ev-ignore')?.addEventListener('click', () => {
-    resolveEvent(g, 'ignore', say);
+    cmdAcceptEventChoice(g, 'ignore', say);
     sfxClick();
     refresh();
   });
   panel.querySelectorAll('[data-spec]').forEach((el) => {
     el.addEventListener('click', () => {
       const id = (el as HTMLElement).dataset.spec as SpecId;
-      if (setSpecialization(g, id, say)) {
+      if (cmdSetSpecialization(g, id, say).ok) {
         sfxUpgrade();
         refresh();
       } else sfxError();
@@ -847,7 +898,7 @@ function wire() {
   panel.querySelector('#a-cloud')?.addEventListener('click', () => {
     g.cloudSyncAt = Date.now();
     save(g);
-    say('Cloud-Sync markiert (lokal). Echtes iCloud/Play Games folgt später.');
+    say('Cloud-Sync-Marker gesetzt (lokal). Echtes Backend folgt später.');
     sfxClick();
     paintPanel();
   });
@@ -926,7 +977,8 @@ function wire() {
   });
   panel.querySelectorAll('[data-goto]').forEach((el) => {
     el.addEventListener('click', () => {
-      const next = switchRegion(g, (el as HTMLElement).dataset.goto as RegionId, say);
+      const nextCmd = cmdSwitchCity(g, (el as HTMLElement).dataset.goto as RegionId, say);
+      const next = nextCmd.ok ? nextCmd.data : null;
       if (next) {
         g = next;
         view.center(g);
@@ -1078,7 +1130,8 @@ canvas.addEventListener('pointerup', (e) => {
     return;
   }
   if (g.selected) {
-    const ok = place(g, x, y, g.selected, say);
+    const built = cmdBuildBuilding(g, x, y, g.selected, say);
+    const ok = built.ok;
     if (ok) {
       view.spawnBurst(x, y, '#3ecf8e', 10);
       view.floatAt(x, y, DEFS[g.selected].icon, '#3ecf8e');
@@ -1124,9 +1177,9 @@ function frame() {
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
     <div class="modal intro-modal">
-      <div class="intro-badge">v2.0 · Fertig</div>
+      <div class="intro-badge">v3 Candidate · Fundament</div>
       <h2>Willkommen in MetroBuilder</h2>
-      <p class="muted">Baue deine Metropole — Simulation 2.0, Verkehr, Multi-City, Events & optional Echtgeld-IAP.</p>
+      <p class="muted">Baue deine Metropole — Simulation V3-Fundament, Verkehrsgraf, Bus-Slice, Events. Store-Submission vorbereitet (nicht veröffentlicht).</p>
       <ol class="loop">
         <li>Straßen legen & Produktionsketten starten</li>
         <li>Wohnungen upgraden, Strom & Wasser halten</li>

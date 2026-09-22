@@ -310,29 +310,79 @@ export function computeCitySim(g: Game): CitySim {
   const serviceMaint = Math.floor(
     services.reduce((a, s) => a + (s.capacity > 0 ? s.capacity * 0.02 : 0), 0),
   );
-  const maintTotal = Math.floor(maintenance) + serviceMaint;
+  let roadSeg = 0;
+  for (const c of g.cells) {
+    if (c.b && (c.b.id === 'road' || c.b.id === 'highway')) {
+      roadSeg += c.b.id === 'highway' ? 2 : 1;
+    }
+  }
+  const roadsCost = Math.floor(roadSeg * 0.35);
+  const transportCost = Math.floor(
+    (g.busLines || []).filter((l) => l.active).reduce((a, l) => a + l.operatingCost, 0),
+  );
+  const taxRate = g.taxRate ?? 1;
+  taxes = Math.floor(taxes * taxRate);
+
+  const maintBuildings = Math.floor(maintenance);
   const cashflow: CashflowSnap = {
     taxes,
     commerce: Math.floor(commerce),
     industry: Math.floor(industry),
-    maintenance: Math.floor(maintenance),
+    maintenance: maintBuildings,
     services: serviceMaint,
-    net: taxes + Math.floor(commerce) + Math.floor(industry) - maintTotal,
+    roads: roadsCost,
+    transport: transportCost,
+    net: 0,
   };
 
   ensureProgression(g);
   const mod = specModifiers(g);
   cashflow.taxes = Math.floor(cashflow.taxes * mod.taxMult);
   cashflow.commerce = Math.floor(cashflow.commerce * mod.commerceMult);
-  cashflow.net =
-    cashflow.taxes + cashflow.commerce + cashflow.industry - cashflow.maintenance - cashflow.services;
+  // High tax hurts happiness; low tax helps
+  if (taxRate > 1.05) {
+    const pen = Math.min(10, Math.round((taxRate - 1) * 20));
+    sat = Math.max(0, sat - pen);
+    causeAcc.set('hohe Steuer', -pen);
+  } else if (taxRate < 0.95) {
+    const bon = Math.min(6, Math.round((1 - taxRate) * 12));
+    sat = Math.min(100, sat + bon);
+    causeAcc.set('niedrige Steuer', bon);
+  }
+  const income = cashflow.taxes + cashflow.commerce + cashflow.industry;
+  const expenses =
+    cashflow.maintenance + cashflow.services + (cashflow.roads || 0) + (cashflow.transport || 0);
+  cashflow.incomePerPeriod = income;
+  cashflow.expensesPerPeriod = expenses;
+  cashflow.net = income - expenses;
+  cashflow.forecastShort = cashflow.net;
+  cashflow.forecastMedium = cashflow.net * 4;
   sat = Math.max(0, Math.min(100, sat + mod.happiness));
   if (mod.happiness) causeAcc.set('Spezialisierung', mod.happiness);
 
-  if (g.traffic && g.traffic.congestion > 50) {
-    const pen = Math.min(12, Math.floor((g.traffic.congestion - 50) / 5));
+  const graphCong = g.trafficGraph?.avgCongestion ?? (g.traffic ? g.traffic.congestion / 100 : 0);
+  if (graphCong > 0.5 || (g.traffic && g.traffic.congestion > 50)) {
+    const congPct = Math.round(graphCong * 100) || g.traffic!.congestion;
+    const pen = Math.min(12, Math.floor((congPct - 50) / 5));
     sat = Math.max(0, sat - pen);
     causeAcc.set('Stau', -pen);
+  }
+
+  // Travel-time productivity dampens industry/commerce slightly
+  const travel = g.trafficGraph?.avgTravelFactor ?? 1;
+  if (travel > 1.15) {
+    const damp = Math.min(0.25, (travel - 1) * 0.2);
+    cashflow.industry = Math.floor(cashflow.industry * (1 - damp));
+    cashflow.commerce = Math.floor(cashflow.commerce * (1 - damp * 0.5));
+    cashflow.net =
+      cashflow.taxes +
+      cashflow.commerce +
+      cashflow.industry -
+      cashflow.maintenance -
+      cashflow.services -
+      (cashflow.roads || 0) -
+      (cashflow.transport || 0);
+    cashflow.incomePerPeriod = cashflow.taxes + cashflow.commerce + cashflow.industry;
   }
 
   const causes: HappinessCause[] = [...causeAcc.entries()]

@@ -83,7 +83,7 @@ export function createGame(region: RegionId = 'valley'): Game {
     c.b = {
       id,
       level: 1,
-      jobAt: DEFS[id].produce ? Date.now() : null,
+      jobAt: DEFS[id].produce ? 0 : null,
       ready: 0,
       wear: 0,
     };
@@ -109,7 +109,7 @@ export function createGame(region: RegionId = 'valley'): Game {
     unlock: START_R,
     level: 1,
     xp: 0,
-    lastTax: Date.now(),
+    lastTax: 0,
     selected: null,
     focus: null,
     quests: [
@@ -125,7 +125,7 @@ export function createGame(region: RegionId = 'valley'): Game {
     unlockedRegions: ['valley'],
     disasterUntil: null,
     weekScore: 0,
-    weekEnds: Date.now() + WEEK_MS,
+    weekEnds: WEEK_MS,
     mayorRank: 12,
     club: {
       name: 'Metro Club',
@@ -147,14 +147,24 @@ export function createGame(region: RegionId = 'valley'): Game {
     lastDailyAt: 0,
     tutorialStep: 0,
     mastery: 0,
-    saveVersion: 7,
+    saveVersion: 8,
     specialization: 'none',
     cityTier: 'dorf',
     cities: {},
     activeEvent: null,
-    nextEventAt: Date.now() + 90_000,
+    nextEventAt: 90_000,
     eventPrep: 0,
     iapReceipts: {},
+    seed: (Math.floor(Math.random() * 0xffffffff) || 1) >>> 0,
+    rngCount: 0,
+    simTimeMs: 0,
+    gameSpeed: '1x',
+    taxRate: 1,
+    roadsDirty: true,
+    busLines: [],
+    busRidership: 0,
+    pendingEffects: [],
+    eventCooldowns: {},
   };
 }
 

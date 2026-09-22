@@ -1,7 +1,7 @@
 # MetroBuilder 2.0.0 — App Store Upload (START HIER)
 
 **Bundle ID:** `com.fidani.metrobuilder`  
-**Version:** 2.0.0 · Build 9  
+**Version:** 2.0.0 · Build 10  
 
 Du brauchst: **Mac + Xcode 16+** + **Apple Developer Program** (99 USD/Jahr).  
 Eine fertige signierte IPA kann niemand ohne *dein* Apple-Team erzeugen — dieses Paket ist dafür vorbereitet.

@@ -8,7 +8,7 @@ import type { Game } from './types';
 import { createGame } from './world';
 
 /** Current envelope schema version */
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 const KEY_CURRENT = 'metrobuilder-save-v5';
 const KEY_TMP = 'metrobuilder-save-v5-tmp';
@@ -110,17 +110,39 @@ export function migrateGame(raw: unknown): Game | null {
   if (g.stats.dailies == null) g.stats.dailies = 0;
   if (!g.iapReceipts) g.iapReceipts = {};
   if (g.saveVersion == null) g.saveVersion = 5;
+  const fromVersion = g.saveVersion;
   // v5 → v6: Simulation Core 2.0 cache fields (recomputed)
   // v6 → v7: city life / traffic / multi-city / events
+  // v7 → v8: seed, sim clock, taxRate, traffic graph, bus lines, delayed events
   g.sim = undefined;
   g.lastSimAt = undefined;
   g.traffic = undefined;
+  g.trafficGraph = undefined;
+  g.routeCache = undefined;
+  g.roadsDirty = true;
   if (!g.specialization) g.specialization = 'none';
   if (!g.cityTier) g.cityTier = 'dorf';
   if (!g.cities) g.cities = {};
   if (g.activeEvent === undefined) g.activeEvent = null;
-  if (g.nextEventAt == null) g.nextEventAt = Date.now() + 90_000;
   if (g.eventPrep == null) g.eventPrep = 0;
+  if (g.seed == null || !Number.isFinite(g.seed)) {
+    g.seed = (Math.floor(Math.random() * 0xffffffff) || 1) >>> 0;
+  }
+  if (g.rngCount == null || g.rngCount < 0) g.rngCount = 0;
+  // Pre-v8 used wall-clock Date.now() for timers — keep continuity
+  if (fromVersion < 8) {
+    if (g.simTimeMs == null || !Number.isFinite(g.simTimeMs)) g.simTimeMs = Date.now();
+  } else if (g.simTimeMs == null || !Number.isFinite(g.simTimeMs)) {
+    g.simTimeMs = 0;
+  }
+  if (g.nextEventAt == null) g.nextEventAt = (g.simTimeMs || 0) + 90_000;
+  if (!g.gameSpeed) g.gameSpeed = '1x';
+  if (g.taxRate == null || !Number.isFinite(g.taxRate)) g.taxRate = 1;
+  g.taxRate = Math.max(0.5, Math.min(1.5, g.taxRate));
+  if (!g.busLines) g.busLines = [];
+  if (g.busRidership == null) g.busRidership = 0;
+  if (!g.pendingEffects) g.pendingEffects = [];
+  if (!g.eventCooldowns) g.eventCooldowns = {};
   g.saveVersion = SAVE_VERSION;
 
   if (typeof g.cash !== 'number' || Number.isNaN(g.cash)) return null;
@@ -128,6 +150,7 @@ export function migrateGame(raw: unknown): Game | null {
   if (g.level > 100) g.level = 100;
   if (g.cash < 0) g.cash = 0;
   if (g.xp < 0) g.xp = 0;
+  if (!Number.isFinite(g.cash) || !Number.isFinite(g.xp)) return null;
 
   return g;
 }

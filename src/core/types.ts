@@ -136,7 +136,15 @@ export interface CashflowSnap {
   industry: number;
   maintenance: number;
   services: number;
+  /** V3: road upkeep */
+  roads?: number;
+  /** V3: bus / transit operating cost */
+  transport?: number;
   net: number;
+  incomePerPeriod?: number;
+  expensesPerPeriod?: number;
+  forecastShort?: number;
+  forecastMedium?: number;
 }
 
 export interface DemandSnap {
@@ -255,6 +263,52 @@ export interface Game {
   } | null;
   nextEventAt?: number;
   eventPrep?: number;
-  /** Phase 7 stub: last cloud sync attempt */
+  /** Phase 7 stub: last local cloud-sync marker (not a real cloud save) */
   cloudSyncAt?: number;
+  /** V3 deterministic sim */
+  seed?: number;
+  rngCount?: number;
+  simTimeMs?: number;
+  gameSpeed?: 'pause' | '1x' | '2x' | '4x';
+  /** Tax multiplier 0.5–1.5 (1 = baseline) */
+  taxRate?: number;
+  /** Traffic V2 */
+  roadsDirty?: boolean;
+  routeCache?: { key: string; routes: Record<string, string[]> };
+  trafficGraph?: {
+    avgCongestion: number;
+    avgTravelFactor: number;
+    nodeCount: number;
+    edgeCount: number;
+    tripCount: number;
+    recomputeMs: number;
+    version: number;
+    edgeCongestion: Record<string, number>;
+  };
+  /** Bus vertical slice */
+  busLines?: Array<{
+    id: string;
+    name: string;
+    stopOrder: Array<{ x: number; y: number }>;
+    frequency: number;
+    capacity: number;
+    operatingCost: number;
+    ridership: number;
+    active: boolean;
+  }>;
+  busRidership?: number;
+  /** Events V2 delayed effects */
+  pendingEffects?: Array<{
+    id: string;
+    atSim: number;
+    kind: string;
+    payload?: Record<string, number | string>;
+  }>;
+  eventCooldowns?: Record<string, number>;
+  /** Perf metrics (ephemeral ok) */
+  metrics?: {
+    lastTickMs?: number;
+    lastTrafficMs?: number;
+    lastSaveMs?: number;
+  };
 }
