@@ -3,7 +3,7 @@
 **Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip  
 **Download-Seite:** https://fidannii.github.io/Fidan/download.html (nach Pages-Setup)
 
-Städtebau-Simulation für **Android + iOS** — **v1.4.1** (Phase-0 Hardening · Capacitor · Stores).
+Städtebau-Simulation für **Android + iOS** — **v1.5.0** (Phase-0 Hardening · Capacitor · Stores).
 
 Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 
@@ -14,7 +14,7 @@ Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 | | |
 |--|--|
 | Bundle / Package ID | `com.fidani.metrobuilder` |
-| Version | **1.4.1** (Build / versionCode **7**) |
+| Version | **1.5.0** (Build / versionCode **8**) |
 | Android | Ordner `android/` |
 | iOS | Ordner `ios/` |
 

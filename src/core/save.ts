@@ -8,7 +8,7 @@ import type { Game } from './types';
 import { createGame } from './world';
 
 /** Current envelope schema version */
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 const KEY_CURRENT = 'metrobuilder-save-v5';
 const KEY_TMP = 'metrobuilder-save-v5-tmp';
@@ -109,7 +109,10 @@ export function migrateGame(raw: unknown): Game | null {
   if (!g.stats) g.stats = { collected: 0, upgrades: 0, disasters: 0, dailies: 0 };
   if (g.stats.dailies == null) g.stats.dailies = 0;
   if (!g.iapReceipts) g.iapReceipts = {};
-  if (g.saveVersion == null) g.saveVersion = 4;
+  if (g.saveVersion == null) g.saveVersion = 5;
+  // v5 → v6: Simulation Core 2.0 cache fields (recomputed)
+  g.sim = undefined;
+  g.lastSimAt = undefined;
   g.saveVersion = SAVE_VERSION;
 
   if (typeof g.cash !== 'number' || Number.isNaN(g.cash)) return null;

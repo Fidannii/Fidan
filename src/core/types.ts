@@ -125,6 +125,51 @@ export interface ClubMember {
   avatar: string;
 }
 
+export interface HappinessCause {
+  label: string;
+  delta: number;
+}
+
+export interface CashflowSnap {
+  taxes: number;
+  commerce: number;
+  industry: number;
+  maintenance: number;
+  services: number;
+  net: number;
+}
+
+export interface DemandSnap {
+  residential: number;
+  commercial: number;
+  industrial: number;
+}
+
+export interface ServiceSnap {
+  kind: string;
+  label: string;
+  capacity: number;
+  demand: number;
+  load: number;
+  quality: number;
+}
+
+export interface CitySim {
+  pop: number;
+  housing: number;
+  houses: number;
+  jobs: number;
+  employed: number;
+  unemployment: number;
+  sat: number;
+  causes: HappinessCause[];
+  demand: DemandSnap;
+  services: ServiceSnap[];
+  landAvg: number;
+  cashflow: CashflowSnap;
+  taxMs: number;
+}
+
 export interface Game {
   cash: number;
   gems: number;
@@ -164,4 +209,7 @@ export interface Game {
   saveVersion: number;
   /** IAP transaction ids already granted (idempotency) */
   iapReceipts: Record<string, number>;
+  /** cached Simulation Core 2.0 snapshot */
+  sim?: CitySim;
+  lastSimAt?: number;
 }

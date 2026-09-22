@@ -271,6 +271,62 @@ body {
   color: var(--muted);
 }
 
+.cashflow-card {
+  margin: 0.55rem 0;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cashflow-net {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.cashflow-net.pos { color: #5eeab4; }
+.cashflow-net.neg { color: #ff8a8a; }
+.cashflow-net span { font-size: 0.75rem; font-weight: 600; opacity: 0.7; }
+
+.cashflow-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.cause-list {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.cause-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.cause-list .pos { color: #5eeab4; }
+.cause-list .neg { color: #ff8a8a; }
+
+.svc-list { display: grid; gap: 0.3rem; margin-top: 0.35rem; }
+.svc-row {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr auto;
+  gap: 0.4rem;
+  align-items: center;
+  font-size: 0.78rem;
+}
+.bar.thin { height: 6px; }
+
 .privacy-link {
   display: inline-flex;
   align-items: center;

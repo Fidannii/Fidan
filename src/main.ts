@@ -11,7 +11,6 @@ import {
   buyNextLevel,
   buyXpPack,
   cell,
-  city,
   collect,
   demolish,
   expand,
@@ -29,7 +28,9 @@ import {
   unlockRegion,
   upgradeHouse,
   upgradeService,
+  cityStats,
 } from './core/sim';
+import { landValueAt } from './core/systems';
 import {
   MAX_LEVEL,
   buyLevelCost,
@@ -209,10 +210,11 @@ function paintTutorial() {
 }
 
 function paintHud() {
-  const s = city(g);
+  const s = cityStats(g);
   const left = Math.max(0, g.weekEnds - Date.now());
   const m = Math.floor(left / 60000);
   const xp = xpProgress(g);
+  const net = s.cashflow.net;
   hud.innerHTML = `
     <div class="hud-player">
       <img class="hud-avatar" src="${avatarUrl('player')}" alt="Du" width="64" height="64" />
@@ -227,12 +229,11 @@ function paintHud() {
     </div>
     <div class="stat">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
     <div class="stat pulse-gold">💰 ${g.cash} <span>Credits</span></div>
+    <div class="stat ${net >= 0 ? 'sat-ok' : 'sat-bad'}">📉 ${net >= 0 ? '+' : ''}${net}<span>/18s</span></div>
     <div class="stat">💎 ${g.gems}</div>
-    <div class="stat">🗝️ ${g.keys.bronze}/${g.keys.silver}/${g.keys.gold}</div>
-    <div class="stat">🎫 ${g.tokens}</div>
-    <div class="stat">👥 ${s.pop}</div>
+    <div class="stat">👥 ${s.pop} <span>${s.jobs} Jobs</span></div>
     <div class="stat ${satTone(s.sat)}">😊 ${s.sat}%</div>
-    <div class="stat">📈 ${s.tax}<span>/18s</span></div>
+    <div class="stat">🏠 ${s.landAvg} <span>Wert</span></div>
     <div class="stat">⭐ ${xp.cur}/${xp.need} <span>XP</span></div>
     <div class="stat ${diffClass(difficulty(g.level).tier)}">⚔ ${difficulty(g.level).label}</div>
     <div class="stat">🏆 #${g.mayorRank} <span>${m}m</span></div>
@@ -287,7 +288,8 @@ function tabsHtml() {
 
 function paintPanel() {
   const f = g.focus ? cell(g, g.focus.x, g.focus.y) : null;
-  const s = city(g);
+  g.lastSimAt = 0;
+  const s = cityStats(g);
 
   let body = '';
   if (tab === 'level') {
@@ -557,7 +559,12 @@ function paintPanel() {
     body = `
       <h2>${d.icon} ${d.name}</h2>
       <p class="muted">${d.blurb}</p>
-      <p class="muted">Feld ${f.x},${f.y}${tier ? ` · ${tier.name} · ${tier.pop} Einw.` : ''}${d.radius ? ` · Radius ${d.radius + f.b.level - 1}` : ''}</p>
+      <p class="muted">Feld ${f.x},${f.y}${tier ? ` · ${tier.name} · ${tier.pop} Einw.` : ''}${d.radius ? ` · Radius ${d.radius + f.b.level - 1}` : ''} · Wert ${landValueAt(g, f.x, f.y)}</p>
+      ${
+        f.b.id === 'house'
+          ? `<p class="muted">Zufriedenheit Stadt ${s.sat}% · Jobs ${s.jobs} · Nachfrage Wohnen ${s.demand.residential > 0 ? '+' : ''}${s.demand.residential}</p>`
+          : ''
+      }
       ${
         d.produce
           ? `<div class="prog"><i style="width:${Math.round(p * 100)}%"></i></div>
@@ -589,17 +596,49 @@ function paintPanel() {
       <h3>Quests</h3>${questHtml()}
     `;
   } else {
+    const cf = s.cashflow;
+    const causesHtml = s.causes.length
+      ? `<ul class="cause-list">${s.causes
+          .map(
+            (c) =>
+              `<li><span>${c.label}</span><strong class="${c.delta >= 0 ? 'pos' : 'neg'}">${c.delta > 0 ? '+' : ''}${c.delta}</strong></li>`,
+          )
+          .join('')}</ul>`
+      : `<p class="muted">Noch keine Häuser — baue Wohnraum.</p>`;
+    const svcHtml = s.services
+      .filter((svc) => svc.capacity > 0 || s.pop > 0)
+      .slice(0, 6)
+      .map(
+        (svc) =>
+          `<div class="svc-row"><span>${svc.label}</span><div class="bar thin"><i style="width:${Math.min(100, svc.load)}%"></i></div><span class="muted">${svc.load}%</span></div>`,
+      )
+      .join('');
     body = `
       <h2>Metropole</h2>
-      <p class="muted">${s.houses} Häuser · ${s.pop} Einw. · Steuern ${s.tax}¢ / 18s
+      <p class="muted">${s.houses} Häuser · ${s.pop} Einw. · ${s.jobs} Jobs · Arbeitslosigkeit ${s.unemployment}%
       ${g.disasterUntil && Date.now() < g.disasterUntil ? ' · 🌪️ Sturm aktiv' : ''}</p>
-      <div class="sat-meter ${satTone(s.sat)}">
-        <div class="sat-label">Zufriedenheit</div>
-        <div class="bar"><i style="width:${s.sat}%"></i></div>
-        <div class="muted">${s.sat}% — Parks, Dienste & Upgrades helfen</div>
+      <div class="cashflow-card">
+        <div class="cashflow-net ${cf.net >= 0 ? 'pos' : 'neg'}">${cf.net >= 0 ? '+' : ''}${cf.net}¢ <span>/ 18s</span></div>
+        <div class="cashflow-grid">
+          <span>Steuern +${cf.taxes}</span>
+          <span>Gewerbe +${cf.commerce}</span>
+          <span>Industrie +${cf.industry}</span>
+          <span>Unterhalt −${cf.maintenance}</span>
+          <span>Dienste −${cf.services}</span>
+        </div>
       </div>
+      <div class="sat-meter ${satTone(s.sat)}">
+        <div class="sat-label">Zufriedenheit · Grundstück Ø ${s.landAvg}</div>
+        <div class="bar"><i style="width:${s.sat}%"></i></div>
+        ${causesHtml}
+      </div>
+      <h3>Nachfrage</h3>
+      <p class="muted">Wohnen ${s.demand.residential > 0 ? '+' : ''}${s.demand.residential} · Gewerbe ${s.demand.commercial > 0 ? '+' : ''}${s.demand.commercial} · Industrie ${s.demand.industrial > 0 ? '+' : ''}${s.demand.industrial}</p>
+      <h3>Versorgung (Auslastung)</h3>
+      <div class="svc-list">${svcHtml || '<p class="muted">Keine Dienste gebaut.</p>'}</div>
       <div class="row">
         <button id="a-expand" class="primary">🔓 Erweitern (${g.tokens}🎫)</button>
+        <button id="a-overlay-land" class="${view.overlay === 'land' ? 'active' : ''}">🗺 Grundstückswert</button>
         <button id="a-disaster">🌪️ Katastrophe</button>
         <button id="a-reset" class="danger">Reset</button>
         <a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener">Datenschutz</a>
@@ -692,6 +731,11 @@ function wire() {
     if (expand(g, say)) sfxExpand();
     else sfxError();
     refresh();
+  });
+  panel.querySelector('#a-overlay-land')?.addEventListener('click', () => {
+    view.overlay = view.overlay === 'land' ? null : 'land';
+    sfxClick();
+    paintPanel();
   });
   panel.querySelectorAll('[data-xp-pack]').forEach((el) => {
     el.addEventListener('click', () => {
@@ -826,6 +870,7 @@ function flushLevelUps() {
 }
 
 function refresh() {
+  g.lastSimAt = 0;
   paintHud();
   paintBar();
   paintPanel();

@@ -25,8 +25,15 @@ import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL,
 import { iapDef, type IapSku } from '../iap/catalog';
 import { checkAchievements } from './meta';
 import { clearAllSaves, loadGame, persistGame } from './save';
+import { canUpgradeHouseSoft, getSim, refreshSim } from './systems';
+import type { CitySim } from './types';
 
 export type Say = (msg: string) => void;
+
+/** City panel / HUD — Simulation Core 2.0 */
+export function cityStats(g: Game): CitySim {
+  return getSim(g);
+}
 
 const TRADERS = TRADER_IDS.map((id) => ({
   id,
@@ -178,6 +185,11 @@ export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
     say('Schule/Uni in der Nähe nötig.');
     return false;
   }
+  const soft = canUpgradeHouseSoft(g, x, y);
+  if (soft) {
+    say(soft);
+    return false;
+  }
   const price = scaledCost(next.cost, g.level);
   if (g.cash < price) {
     say('Zu wenig Credits.');
@@ -223,12 +235,20 @@ export function upgradeService(g: Game, x: number, y: number, say: Say): boolean
 }
 
 export function taxes(g: Game, say: Say, now = Date.now()) {
-  const { tax, taxMs, sat } = city(g);
-  if (now - g.lastTax < taxMs) return;
+  const sim = refreshSim(g);
+  if (now - g.lastTax < sim.taxMs) return;
   g.lastTax = now;
-  if (tax <= 0) return;
-  g.cash += tax;
-  say(`Steuern +${tax} (${sat}%)`);
+  const net = sim.cashflow.net;
+  if (net === 0 && sim.houses === 0) return;
+  g.cash += net;
+  const sign = net >= 0 ? '+' : '';
+  const why =
+    sim.causes.length > 0
+      ? ` · ${sim.causes[0].label} ${sim.causes[0].delta > 0 ? '+' : ''}${sim.causes[0].delta}`
+      : '';
+  say(
+    `Cashflow ${sign}${net}¢ (Steuern ${sim.cashflow.taxes} − Unterhalt ${sim.cashflow.maintenance + sim.cashflow.services}, Zfr. ${sim.sat}%)${why}`,
+  );
 }
 
 export function expand(g: Game, say: Say): boolean {

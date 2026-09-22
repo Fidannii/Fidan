@@ -1,6 +1,7 @@
 import { DEFS } from '../core/catalog';
 import type { Cell, Game } from '../core/types';
 import { cell, prog } from '../core/sim';
+import { landColor, landValueAt } from '../core/systems';
 import { drawBuildingSprite, isoDiamond } from './sprites';
 import { spawnFloat, tickFloats, type FloatLabel } from './fx';
 
@@ -38,6 +39,8 @@ export class View {
   floats: FloatLabel[] = [];
   citizens: Citizen[] = [];
   time = 0;
+  /** Phase 1 overlay: land value heat map */
+  overlay: null | 'land' = null;
   private citizenInit = false;
   private lastRegion: string | null = null;
 
@@ -266,6 +269,11 @@ export class View {
     ctx.globalAlpha = 1;
 
     isoDiamond(ctx, cx, cy, hw, hh, cols.top, 'rgba(255,255,255,0.05)');
+
+    if (this.overlay === 'land') {
+      const lv = landValueAt(g, c.x, c.y);
+      isoDiamond(ctx, cx, cy, hw * 0.92, hh * 0.92, landColor(lv));
+    }
 
     if (c.terrain === 'water') {
       const shimmer = 0.12 + 0.12 * Math.sin(this.time / 280 + c.x * 1.2 + c.y);
