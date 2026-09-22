@@ -1,0 +1,683 @@
+import {
+  BUILD_ORDER,
+  DEFS,
+  HOUSE,
+  REGIONS,
+  RES,
+  WEEK_MS,
+} from './catalog';
+import type { BuildId, Game, RegionId, Res, TradeOffer } from './types';
+import {
+  cell,
+  city,
+  covered,
+  createGame,
+  hasDepot,
+  hasIn,
+  hasStation,
+  quest,
+  roadNext,
+  takeIn,
+  xp,
+} from './world';
+import { TRADER_IDS, avatarMeta } from '../ui/avatars';
+import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL, xpNeeded } from './progression';
+import { iapDef, type IapSku } from '../iap/catalog';
+import { checkAchievements } from './meta';
+import { clearAllSaves, loadGame, persistGame } from './save';
+import { switchCity as switchCityImpl, ensureCities, regionalTrade } from './cities';
+import { computeTraffic } from './traffic';
+import { recomputeTrafficGraph } from './trafficGraph';
+import { ensureProgression } from './cityProgress';
+import { ensureEvents, tickEvents, applyPendingEffects } from './events';
+import { canUpgradeHouseSoft, getSim, refreshSim } from './systems';
+import { tickBus } from './bus';
+import { ensureRuntime, nowOf, syncRuntimeToGame } from './clock';
+import type { CitySim } from './types';
+import { maybeEvolveHouses } from './growth';
+
+export type Say = (msg: string) => void;
+
+/** City panel / HUD — Simulation Core 2.0 */
+export function cityStats(g: Game): CitySim {
+  return getSim(g);
+}
+
+const TRADERS = TRADER_IDS.map((id) => ({
+  id,
+  name: id[0].toUpperCase() + id.slice(1),
+  title: avatarMeta(id).title,
+}));
+
+export function canPlace(g: Game, x: number, y: number, id: BuildId): string | null {
+  const c = cell(g, x, y);
+  if (!c) return 'Außerhalb.';
+  if (c.terrain === 'void') return 'Gebiet gesperrt.';
+  if (c.terrain === 'water') return 'Nicht auf Wasser.';
+  if (c.b) return 'Feld belegt.';
+  const d = DEFS[id];
+  if (g.level < d.unlockLv) return `Ab Level ${d.unlockLv}.`;
+  if (d.region && !g.unlockedRegions.includes(d.region) && g.region !== d.region) {
+    return `Region ${REGIONS[d.region].name} nötig.`;
+  }
+  const price = scaledCost(d.cost, g.level);
+  if (g.cash < price) return 'Zu wenig Credits.';
+  if (d.needsRoad && !roadNext(g, x, y)) return 'Straße muss angrenzen.';
+  return null;
+}
+
+export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boolean {
+  const err = canPlace(g, x, y, id);
+  if (err) {
+    say(err);
+    return false;
+  }
+  const c = cell(g, x, y)!;
+  const d = DEFS[id];
+  const price = scaledCost(d.cost, g.level);
+  g.cash -= price;
+  c.b = {
+    id,
+    level: 1,
+    jobAt: d.produce ? nowOf(g) : null,
+    ready: 0,
+    wear: 0,
+  };
+  g.built += 1;
+  xp(g, 10);
+  if (id === 'road' || id === 'highway') quest(g, 'roads');
+  if (id === 'police' || id === 'fire') quest(g, 'services');
+  g.club.warScore += 1;
+  say(`${d.name} (−${price})`);
+  checkAchievements(g, say);
+  return true;
+}
+
+export function demolish(g: Game, x: number, y: number, say: Say) {
+  const c = cell(g, x, y);
+  if (!c?.b) {
+    say('Nichts da.');
+    return;
+  }
+  const back = Math.floor(DEFS[c.b.id].cost * 0.4);
+  g.cash += back;
+  c.b = null;
+  say(`Abgerissen (+${back})`);
+}
+
+function supplied(g: Game, x: number, y: number, id: BuildId): boolean {
+  const d = DEFS[id];
+  if (d.needsRoad && id !== 'road' && id !== 'highway' && !roadNext(g, x, y)) return false;
+  if (d.power > 0 && !covered(g, x, y, ['power', 'solar'])) return false;
+  if (d.water > 0 && !covered(g, x, y, ['water'])) return false;
+  return true;
+}
+
+export function tickProd(g: Game, now = Date.now()) {
+  for (const c of g.cells) {
+    const b = c.b;
+    if (!b) continue;
+    const d = DEFS[b.id];
+    if (!d.produce) continue;
+    if (!supplied(g, c.x, c.y, b.id)) {
+      b.wear = Math.min(100, b.wear + 0.04 * difficulty(g.level).wear);
+      continue;
+    }
+    b.wear = Math.max(0, b.wear - 0.06);
+    if (b.ready > 0) continue;
+    if (b.jobAt == null) {
+      if (hasIn(g, d.produce.in)) {
+        takeIn(g, d.produce.in);
+        b.jobAt = now;
+      }
+      continue;
+    }
+    const need = scaledProdMs(
+      d.produce.ms,
+      g.level,
+      b.wear,
+      g.region === 'snow',
+      d.power > 0,
+    );
+    if (now - b.jobAt >= need) {
+      b.ready = d.produce.amount;
+      b.jobAt = null;
+    }
+  }
+}
+
+export function collect(g: Game, x: number, y: number, say: Say): boolean {
+  const c = cell(g, x, y);
+  const b = c?.b;
+  if (!b || b.ready <= 0) return false;
+  const d = DEFS[b.id];
+  if (!d.produce) return false;
+  let amt = b.ready;
+  if (g.region === 'desert' && d.produce.out === 'metal') amt += 1;
+  if (g.region === 'coast' && d.produce.out === 'glass') amt += 1;
+  g.inv[d.produce.out] += amt;
+  g.stats.collected += amt;
+  if (d.produce.out === 'wood') quest(g, 'wood', amt);
+  if (d.produce.out === 'planks') quest(g, 'planks', amt);
+  say(`+${amt} ${RES[d.produce.out].name}`);
+  b.ready = 0;
+  if (hasIn(g, d.produce.in)) {
+    takeIn(g, d.produce.in);
+    b.jobAt = Date.now();
+  } else {
+    b.jobAt = d.produce.in ? null : Date.now();
+  }
+  xp(g, 8);
+  g.club.warScore += 1;
+  checkAchievements(g, say);
+  return true;
+}
+
+export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
+  const c = cell(g, x, y);
+  if (c?.b?.id !== 'house') {
+    say('Kein Wohnhaus.');
+    return false;
+  }
+  const next = HOUSE.find((h) => h.level === c.b!.level + 1);
+  if (!next) {
+    say('Max-Stufe.');
+    return false;
+  }
+  const needLv = next.level === 5 ? 40 : next.level === 6 ? 70 : 1;
+  if (g.level < needLv) {
+    say(`Hochhaus-Stufen ab Level ${needLv}.`);
+    return false;
+  }
+  if (next.needSchool && !covered(g, x, y, ['school', 'uni'])) {
+    say('Schule/Uni in der Nähe nötig.');
+    return false;
+  }
+  const soft = canUpgradeHouseSoft(g, x, y);
+  if (soft) {
+    say(soft);
+    return false;
+  }
+  const price = scaledCost(next.cost, g.level);
+  if (g.cash < price) {
+    say('Zu wenig Credits.');
+    return false;
+  }
+  if (!hasIn(g, next.needs)) {
+    say('Waren fehlen.');
+    return false;
+  }
+  g.cash -= price;
+  takeIn(g, next.needs);
+  c.b.level = next.level;
+  g.stats.upgrades += 1;
+  quest(g, 'upgrade');
+  xp(g, 28 + next.level * 4);
+  say(`→ ${next.name}`);
+  checkAchievements(g, say);
+  return true;
+}
+
+export function upgradeService(g: Game, x: number, y: number, say: Say): boolean {
+  const c = cell(g, x, y);
+  if (!c?.b) return false;
+  const d = DEFS[c.b.id];
+  if (!d.radius || c.b.id === 'house') {
+    say('Nicht ausbaubar.');
+    return false;
+  }
+  if (c.b.level >= 3) {
+    say('Max-Ausbau.');
+    return false;
+  }
+  const cost = scaledCost(Math.floor(d.cost * 0.8 * c.b.level), g.level);
+  if (g.cash < cost) {
+    say(`Kostet ${cost}.`);
+    return false;
+  }
+  g.cash -= cost;
+  c.b.level += 1;
+  say(`${d.name} Ausbau L${c.b.level} (−${cost})`);
+  xp(g, 16);
+  return true;
+}
+
+export function taxes(g: Game, say: Say, now = Date.now()) {
+  const sim = refreshSim(g);
+  if (now - g.lastTax < sim.taxMs) return;
+  g.lastTax = now;
+  const net = sim.cashflow.net;
+  if (net === 0 && sim.houses === 0) return;
+  g.cash += net;
+  const sign = net >= 0 ? '+' : '';
+  const why =
+    sim.causes.length > 0
+      ? ` · ${sim.causes[0].label} ${sim.causes[0].delta > 0 ? '+' : ''}${sim.causes[0].delta}`
+      : '';
+  say(
+    `Cashflow ${sign}${net}¢ (Einnahmen ${sim.cashflow.incomePerPeriod ?? sim.cashflow.taxes + sim.cashflow.commerce + sim.cashflow.industry} − Straßen ${sim.cashflow.roads ?? 0} · Services ${sim.cashflow.services} · Transport ${sim.cashflow.transport ?? 0} · Gebäude ${sim.cashflow.maintenance}, Zfr. ${sim.sat}%)${why}`,
+  );
+}
+
+export function expand(g: Game, say: Say): boolean {
+  const useToken = g.tokens >= 1;
+  const useKey = !useToken && g.keys.bronze >= 1;
+  const cashCost = scaledCost(100 + g.unlock * 25 + Math.floor(g.level * 4), g.level);
+  if (!useToken && !useKey && g.cash < cashCost) {
+    say(`Token, Bronzeschlüssel oder ${cashCost}¢.`);
+    return false;
+  }
+  if (useToken) g.tokens -= 1;
+  else if (useKey) g.keys.bronze -= 1;
+  else g.cash -= cashCost;
+
+  g.unlock += 2;
+  const cx = Math.floor(g.size / 2);
+  const cy = Math.floor(g.size / 2);
+  const base = REGIONS[g.region].terrain;
+  let n = 0;
+  for (const c of g.cells) {
+    if (c.terrain !== 'void') continue;
+    if (Math.max(Math.abs(c.x - cx), Math.abs(c.y - cy)) <= g.unlock) {
+      c.terrain = base;
+      n++;
+    }
+  }
+  quest(g, 'expand');
+  xp(g, 35);
+  say(`+${n} Felder`);
+  return true;
+}
+
+export function speedUp(g: Game, x: number, y: number, say: Say): boolean {
+  const c = cell(g, x, y);
+  const b = c?.b;
+  const d = b ? DEFS[b.id] : null;
+  if (!b || !d?.produce || b.jobAt == null) {
+    say('Keine Produktion.');
+    return false;
+  }
+  if (g.gems < 1) {
+    say('Keine Gems.');
+    return false;
+  }
+  g.gems -= 1;
+  b.ready = d.produce.amount;
+  b.jobAt = null;
+  say('Fertig (−1 Gem)');
+  return true;
+}
+
+/** Buy an XP pack with credits (coins) */
+export function buyXpPack(g: Game, packId: string, say: Say): boolean {
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level erreicht.');
+    return false;
+  }
+  const pack = xpPacks(g).find((p) => p.id === packId);
+  if (!pack) {
+    say('Unbekanntes Paket.');
+    return false;
+  }
+  if (g.cash < pack.cost) {
+    say(`Braucht ${pack.cost}¢.`);
+    return false;
+  }
+  g.cash -= pack.cost;
+  xp(g, pack.xp);
+  say(`+${pack.xp} XP (−${pack.cost}¢)`);
+  return true;
+}
+
+/** Pay credits to fill remaining XP and level up once */
+export function buyNextLevel(g: Game, say: Say): boolean {
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level erreicht.');
+    return false;
+  }
+  const cost = buyLevelCost(g);
+  if (cost == null) {
+    say('Kein Level-Kauf möglich.');
+    return false;
+  }
+  if (g.cash < cost) {
+    say(`Braucht ${cost}¢ für Level-Up.`);
+    return false;
+  }
+  const before = g.level;
+  const remain = Math.max(1, xpNeeded(g.level) - g.xp);
+  g.cash -= cost;
+  xp(g, remain);
+  if (g.level > before) say(`Level ${g.level}! (−${cost}¢)`);
+  else say(`+${remain} XP (−${cost}¢)`);
+  return true;
+}
+
+/** Apply a real-money IAP reward (consumable). Idempotent via receiptId. */
+export function grantIap(
+  g: Game,
+  sku: IapSku,
+  say: Say,
+  receiptId?: string,
+): boolean {
+  const def = iapDef(sku);
+  if (!def) {
+    say('Unbekanntes Produkt.');
+    return false;
+  }
+  if (!g.iapReceipts) g.iapReceipts = {};
+  const rid = receiptId || `sku:${sku}:${Date.now()}`;
+  if (g.iapReceipts[rid]) {
+    say('Kauf bereits gutgeschrieben.');
+    return false;
+  }
+  // Also block rapid duplicate of same SKU without id (web/native double-fire)
+  const recentSku = Object.entries(g.iapReceipts).find(
+    ([k, t]) => k.startsWith(`sku:${sku}:`) && Date.now() - t < 8_000,
+  );
+  if (!receiptId && recentSku) {
+    say('Kauf bereits gutgeschrieben.');
+    return false;
+  }
+
+  g.iapReceipts[rid] = Date.now();
+  // prune old receipts (keep last ~80)
+  const entries = Object.entries(g.iapReceipts).sort((a, b) => b[1] - a[1]);
+  if (entries.length > 80) {
+    g.iapReceipts = Object.fromEntries(entries.slice(0, 80));
+  }
+
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level — Kauf gutgeschrieben als Credits.');
+    g.cash += 500;
+    return true;
+  }
+  if (def.kind === 'xp' && def.xp) {
+    xp(g, def.xp);
+    say(`${def.title}: +${def.xp} XP`);
+    return true;
+  }
+  if (def.kind === 'level') {
+    const before = g.level;
+    const remain = Math.max(1, xpNeeded(g.level) - g.xp);
+    xp(g, remain);
+    if (g.level > before) say(`Sofort-Level → Level ${g.level}!`);
+    else say(`+${remain} XP (Sofort-Level)`);
+    return true;
+  }
+  return false;
+}
+
+export function buy(g: Game, r: Res, say: Say) {
+  let price = RES[r].sell * 4;
+  if (hasStation(g)) price = Math.floor(price * 0.9);
+  if (g.region === 'coast') price = Math.floor(price * 0.95);
+  if (g.cash < price) {
+    say('Zu teuer.');
+    return;
+  }
+  g.cash -= price;
+  g.inv[r] += 1;
+  say(`+1 ${RES[r].name} (−${price})`);
+}
+
+export function sell(g: Game, r: Res, say: Say) {
+  if (g.inv[r] < 1) {
+    say('Nichts da.');
+    return;
+  }
+  let gain = RES[r].sell;
+  if (hasStation(g)) gain = Math.floor(gain * 1.1);
+  g.inv[r] -= 1;
+  g.cash += gain;
+  say(`Verkauf ${RES[r].name} (+${gain})`);
+}
+
+export function refreshOffers(g: Game, now = Date.now()) {
+  const interval = hasDepot(g) ? 25_000 : 45_000;
+  if (now - g.lastOfferAt < interval && g.offers.length) return;
+  g.lastOfferAt = now;
+  const keys = Object.keys(RES) as Res[];
+  const list: TradeOffer[] = [];
+  const count = hasDepot(g) ? 5 : 3;
+  for (let i = 0; i < count; i++) {
+    const res = keys[Math.floor(Math.random() * keys.length)];
+    const amount = 1 + Math.floor(Math.random() * 3);
+    const price = Math.max(1, RES[res].sell * amount + Math.floor(Math.random() * 6) - 2);
+    const trader = TRADERS[Math.floor(Math.random() * TRADERS.length)];
+    list.push({
+      id: `o${now}-${i}`,
+      res,
+      amount,
+      price,
+      from: trader.name,
+      avatar: trader.id,
+      expires: now + 90_000,
+    });
+  }
+  g.offers = list;
+}
+
+export function acceptOffer(g: Game, id: string, say: Say) {
+  const o = g.offers.find((x) => x.id === id);
+  if (!o) return;
+  if (Date.now() > o.expires) {
+    say('Angebot abgelaufen.');
+    g.offers = g.offers.filter((x) => x.id !== id);
+    return;
+  }
+  if (g.cash < o.price) {
+    say('Zu wenig Credits.');
+    return;
+  }
+  g.cash -= o.price;
+  g.inv[o.res] += o.amount;
+  g.offers = g.offers.filter((x) => x.id !== id);
+  say(`${o.from}: +${o.amount} ${RES[o.res].name}`);
+  g.club.warScore += 2;
+}
+
+export function triggerDisaster(g: Game, say: Say): boolean {
+  if (g.disasterUntil && Date.now() < g.disasterUntil) {
+    say('Läuft bereits.');
+    return false;
+  }
+  g.disasterUntil = Date.now() + 40_000;
+  g.stats.disasters += 1;
+  for (const c of g.cells) {
+    if (c.b && Math.random() < 0.3) c.b.wear = Math.min(100, c.b.wear + 50);
+  }
+  say('🌪️ Katastrophe! Repariere Versorgung.');
+  return true;
+}
+
+export function resolveDisaster(g: Game, say: Say) {
+  if (!g.disasterUntil || Date.now() < g.disasterUntil) return;
+  g.disasterUntil = null;
+  g.keys.gold += 1;
+  g.gems += 2;
+  g.cash += 150;
+  g.tokens += 1;
+  say('Vorbei! +Goldschlüssel +2 Gems +Token');
+}
+
+export function tickWeek(g: Game, say: Say, now = Date.now()) {
+  if (now < g.weekEnds) return;
+  // AI rivals gain score
+  for (const m of g.club.members) {
+    if (m.ai) m.score += 20 + Math.floor(Math.random() * 40);
+  }
+  const rivals = [g.weekScore, 80, 120, 60, 150, 95].sort((a, b) => b - a);
+  g.mayorRank = rivals.indexOf(g.weekScore) + 1;
+  let reward = 40;
+  let key: 'bronze' | 'silver' | 'gold' | null = 'bronze';
+  if (g.mayorRank === 1) {
+    reward = 200;
+    key = 'gold';
+  } else if (g.mayorRank === 2) {
+    reward = 120;
+    key = 'silver';
+  } else if (g.mayorRank <= 3) {
+    reward = 80;
+    key = 'bronze';
+  } else key = null;
+  g.cash += reward;
+  if (key) g.keys[key] += 1;
+  say(`Bürgermeister-Wettbewerb: Platz ${g.mayorRank} (+${reward}¢)`);
+  g.weekScore = 0;
+  g.weekEnds = now + WEEK_MS;
+
+  // club war resolve chunk
+  for (const m of g.club.members) if (m.ai) g.club.warScore += Math.floor(Math.random() * 8);
+  if (g.club.warScore >= g.club.warTarget) {
+    g.cash += 250;
+    g.gems += 3;
+    g.keys.silver += 1;
+    say('Club-Krieg gewonnen! Belohnung.');
+    g.club.warScore = 0;
+    g.club.warTarget += 40;
+  }
+}
+
+export function unlockRegion(g: Game, id: RegionId, say: Say): boolean {
+  if (g.unlockedRegions.includes(id)) {
+    say('Schon freigeschaltet.');
+    return false;
+  }
+  const cost = REGIONS[id].unlockCost;
+  if (g.cash < cost) {
+    say(`Kostet ${cost}.`);
+    return false;
+  }
+  if (id !== 'valley' && g.level < 3) {
+    say('Ab Level 3.');
+    return false;
+  }
+  g.cash -= cost;
+  g.unlockedRegions.push(id);
+  say(`${REGIONS[id].name} freigeschaltet.`);
+  return true;
+}
+
+export function switchRegion(g: Game, id: RegionId, say: Say): Game | null {
+  ensureCities(g);
+  ensureProgression(g);
+  return switchCityImpl(g, id, say);
+}
+
+export function tradeToRegion(
+  g: Game,
+  to: RegionId,
+  res: Res,
+  amount: number,
+  say: Say,
+): boolean {
+  return regionalTrade(g, to, res, amount, say);
+}
+
+export function tick(g: Game, say: Say) {
+  const t0 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  const rt = ensureRuntime(g);
+  // Advance sim clock from wall time (visual frame cadence)
+  rt.clock.advanceFromWall(
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now(),
+  );
+  const now = rt.clock.now();
+  g.simTimeMs = now;
+  g.gameSpeed = rt.clock.speed;
+
+  if (rt.clock.speed === 'pause') {
+    syncRuntimeToGame(g);
+    return;
+  }
+
+  const graph = recomputeTrafficGraph(g);
+  g.traffic = computeTraffic(g);
+  // Blend graph congestion into legacy snapshot for UI compatibility
+  if (graph.edges.length) {
+    g.traffic.congestion = Math.round(graph.avgCongestion * 100);
+  }
+  const simQuick = getSim(g);
+  tickBus(g, simQuick.pop, graph.avgCongestion);
+  ensureProgression(g);
+  ensureEvents(g);
+  tickProd(g, now);
+  taxes(g, say, now);
+  resolveDisaster(g, say);
+  tickWeek(g, say, now);
+  refreshOffers(g, now);
+  g.offers = g.offers.filter((o) => o.expires > now);
+  applyPendingEffects(g, say);
+  tickEvents(g, say);
+  maybeEvolveHouses(g, now);
+  refreshSim(g);
+  syncRuntimeToGame(g);
+  const t1 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  g.metrics = {
+    ...(g.metrics || {}),
+    lastTickMs: Math.max(0, t1 - t0),
+    lastTrafficMs: graph.recomputeMs,
+  };
+}
+
+export function prog(g: Game, x: number, y: number): number {
+  const c = cell(g, x, y);
+  const b = c?.b;
+  const d = b ? DEFS[b.id] : null;
+  if (!b || !d?.produce) return 0;
+  if (b.ready > 0) return 1;
+  if (b.jobAt == null) return 0;
+  const need = scaledProdMs(
+    d.produce.ms,
+    g.level,
+    b.wear,
+    g.region === 'snow',
+    d.power > 0,
+  );
+  return Math.min(1, (nowOf(g) - b.jobAt) / need);
+}
+
+export function save(g: Game) {
+  syncRuntimeToGame(g);
+  const t0 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  persistGame(g);
+  const t1 =
+    typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  g.metrics = { ...(g.metrics || {}), lastSaveMs: Math.max(0, t1 - t0) };
+}
+
+export function load(): Game {
+  const result = loadGame();
+  ensureRuntime(result.game);
+  return result.game;
+}
+
+/** Load with recovery metadata (for UI toast) */
+export function loadWithMeta() {
+  const result = loadGame();
+  ensureRuntime(result.game);
+  return result;
+}
+
+export function reset(): Game {
+  clearAllSaves();
+  const g = createGame();
+  ensureRuntime(g);
+  return g;
+}
+
+export {
+  BUILD_ORDER,
+  DEFS,
+  HOUSE,
+  RES,
+  REGIONS,
+  createGame,
+  city,
+  cell,
+  roadNext,
+  covered,
+};
