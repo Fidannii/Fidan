@@ -1,6 +1,6 @@
 # MetroBuilder
 
-Städtebau-Simulation — **v1.0.0 store-ready** (Capacitor iOS/Android + PWA).
+Städtebau-Simulation — **v1.1.0 store-ready** (Capacitor iOS/Android + PWA).
 
 ## Spielen (Web)
 
@@ -27,4 +27,4 @@ Listing-Texte: `store/APP_STORE_LISTING_DE.md`
 Screenshots: `store/screenshots/`  
 Privacy (GitHub Pages): `docs/privacy.html`
 
-Bundle ID: `com.fidani.metrobuilder`
+Bundle ID: `com.fidani.metrobuilder` · Version **1.1.0**

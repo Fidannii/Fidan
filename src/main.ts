@@ -52,6 +52,37 @@ async function initNative() {
 
 void initNative();
 
+async function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+    const map = {
+      light: ImpactStyle.Light,
+      medium: ImpactStyle.Medium,
+      heavy: ImpactStyle.Heavy,
+    };
+    await Haptics.impact({ style: map[style] });
+  } catch {
+    /* optional */
+  }
+}
+
+function mayorTitle(level: number): string {
+  if (level >= 25) return 'Metropol-Legende';
+  if (level >= 20) return 'Großstadt-Ikone';
+  if (level >= 15) return 'Stadtvisionär';
+  if (level >= 10) return 'Stadtrat';
+  if (level >= 5) return 'Jungbürgermeister';
+  return 'Siedler';
+}
+
+function satTone(sat: number): string {
+  if (sat >= 80) return 'sat-great';
+  if (sat >= 55) return 'sat-ok';
+  if (sat >= 30) return 'sat-meh';
+  return 'sat-bad';
+}
+
 const hud = document.querySelector<HTMLElement>('#hud')!;
 const panel = document.querySelector<HTMLElement>('#panel')!;
 const bar = document.querySelector<HTMLElement>('#build-bar')!;
@@ -85,6 +116,7 @@ function paintHud() {
       <img class="hud-avatar" src="${avatarUrl('player')}" alt="Du" width="64" height="64" />
       <div>
         <div class="brand">MetroBuilder</div>
+        <div class="mayor-title">${mayorTitle(g.level)}</div>
         <div class="xp-wrap" title="${xp.cur}/${xp.need} XP">
           <div class="xp-label">Lv ${g.level}${g.level >= MAX_LEVEL ? ' MAX' : ''}</div>
           <div class="xp-bar"><i style="width:${xp.pct}%"></i></div>
@@ -92,12 +124,12 @@ function paintHud() {
       </div>
     </div>
     <div class="stat">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
-    <div class="stat">💰 ${g.cash} <span>Credits</span></div>
+    <div class="stat pulse-gold">💰 ${g.cash} <span>Credits</span></div>
     <div class="stat">💎 ${g.gems}</div>
     <div class="stat">🗝️ ${g.keys.bronze}/${g.keys.silver}/${g.keys.gold}</div>
     <div class="stat">🎫 ${g.tokens}</div>
     <div class="stat">👥 ${s.pop}</div>
-    <div class="stat">😊 ${s.sat}%</div>
+    <div class="stat ${satTone(s.sat)}">😊 ${s.sat}%</div>
     <div class="stat">📈 ${s.tax}<span>/18s</span></div>
     <div class="stat">⭐ ${xp.cur}/${xp.need} <span>XP</span></div>
     <div class="stat">🏆 #${g.mayorRank} <span>${m}m</span></div>
@@ -139,12 +171,12 @@ function questHtml() {
 }
 
 function tabsHtml() {
-  return `<div class="row">
-    <button data-tab="city" class="${tab === 'city' ? 'active' : ''}">Stadt</button>
-    <button data-tab="level" class="${tab === 'level' ? 'active' : ''}">Aufstieg</button>
-    <button data-tab="market" class="${tab === 'market' ? 'active' : ''}">Handel</button>
-    <button data-tab="club" class="${tab === 'club' ? 'active' : ''}">Club</button>
-    <button data-tab="regions" class="${tab === 'regions' ? 'active' : ''}">Regionen</button>
+  return `<div class="tabs">
+    <button data-tab="city" class="${tab === 'city' ? 'active' : ''}"><span>🏙️</span> Stadt</button>
+    <button data-tab="level" class="${tab === 'level' ? 'active' : ''}"><span>⭐</span> Aufstieg</button>
+    <button data-tab="market" class="${tab === 'market' ? 'active' : ''}"><span>🏪</span> Handel</button>
+    <button data-tab="club" class="${tab === 'club' ? 'active' : ''}"><span>👥</span> Club</button>
+    <button data-tab="regions" class="${tab === 'regions' ? 'active' : ''}"><span>🗺️</span> Regionen</button>
   </div>`;
 }
 
@@ -159,7 +191,7 @@ function paintPanel() {
     const unlocked = BUILD_ORDER.filter((id) => DEFS[id].unlockLv <= g.level);
     body = `
       <h2>⭐ Level-Aufstieg</h2>
-      <p class="muted">Baue, produziere und upgrade — sammle XP bis Level ${MAX_LEVEL}.</p>
+      <p class="muted">Titel: <strong>${mayorTitle(g.level)}</strong> — baue, produziere und upgrade bis Level ${MAX_LEVEL}.</p>
       <div class="level-card">
         <div class="level-badge">Lv ${g.level}</div>
         <div class="level-xp">
@@ -329,6 +361,11 @@ function paintPanel() {
       <h2>Metropole</h2>
       <p class="muted">${s.houses} Häuser · ${s.pop} Einw. · Steuern ${s.tax}¢ / 18s
       ${g.disasterUntil && Date.now() < g.disasterUntil ? ' · 🌪️ Sturm aktiv' : ''}</p>
+      <div class="sat-meter ${satTone(s.sat)}">
+        <div class="sat-label">Zufriedenheit</div>
+        <div class="bar"><i style="width:${s.sat}%"></i></div>
+        <div class="muted">${s.sat}% — Parks, Dienste & Upgrades helfen</div>
+      </div>
       <div class="row">
         <button id="a-expand" class="primary">🔓 Erweitern (${g.tokens}🎫)</button>
         <button id="a-disaster">🌪️ Katastrophe</button>
@@ -354,7 +391,9 @@ function wire() {
   panel.querySelector('#a-collect')?.addEventListener('click', () => {
     if (!g.focus) return;
     if (collect(g, g.focus.x, g.focus.y, say)) {
-      view.spawnBurst(g.focus.x, g.focus.y, '#ffe566', 14);
+      view.spawnBurst(g.focus.x, g.focus.y, '#ffe566', 16);
+      view.floatAt(g.focus.x, g.focus.y, '+Ressourcen', '#ffe566');
+      void haptic('medium');
     }
     refresh();
   });
@@ -365,7 +404,11 @@ function wire() {
   });
   panel.querySelector('#a-up')?.addEventListener('click', () => {
     if (!g.focus) return;
-    upgradeHouse(g, g.focus.x, g.focus.y, say);
+    if (upgradeHouse(g, g.focus.x, g.focus.y, say)) {
+      view.spawnBurst(g.focus.x, g.focus.y, '#7ad4ff', 18);
+      view.floatAt(g.focus.x, g.focus.y, 'Upgrade!', '#7ad4ff');
+      void haptic('heavy');
+    }
     refresh();
   });
   panel.querySelector('#a-svc')?.addEventListener('click', () => {
@@ -443,6 +486,7 @@ function showLevelUp(ev: LevelUpEvent) {
   modal.innerHTML = `
     <div class="modal level-up-modal">
       <div class="level-up-burst">LEVEL UP</div>
+      <div class="level-up-title">${mayorTitle(ev.level)}</div>
       <h2>Level ${ev.level} erreicht!</h2>
       <p class="muted">Dein Aufstieg als Bürgermeister.</p>
       <div class="reward-grid">
@@ -456,6 +500,7 @@ function showLevelUp(ev: LevelUpEvent) {
       ${unlockHtml}
       <div class="row" style="margin-top:1rem"><button id="lvl-ok" class="primary">Weiter</button></div>
     </div>`;
+  void haptic('heavy');
   modal.querySelector('#lvl-ok')?.addEventListener('click', () => {
     modal.innerHTML = '';
     levelModalOpen = false;
@@ -553,7 +598,9 @@ canvas.addEventListener('pointerup', (e) => {
 
   if (c.b && c.b.ready > 0 && !g.selected) {
     collect(g, x, y, say);
-    view.spawnBurst(x, y, '#ffe566', 14);
+    view.spawnBurst(x, y, '#ffe566', 16);
+    view.floatAt(x, y, '+Ressourcen', '#ffe566');
+    void haptic('medium');
     g.focus = { x, y };
     tab = 'city';
     refresh();
@@ -561,7 +608,11 @@ canvas.addEventListener('pointerup', (e) => {
   }
   if (g.selected) {
     const ok = place(g, x, y, g.selected, say);
-    if (ok) view.spawnBurst(x, y, '#3ecf8e', 8);
+    if (ok) {
+      view.spawnBurst(x, y, '#3ecf8e', 10);
+      view.floatAt(x, y, DEFS[g.selected].icon, '#3ecf8e');
+      void haptic('light');
+    }
     if (g.selected !== 'road' && g.selected !== 'highway') g.selected = null;
     g.focus = { x, y };
     tab = 'city';
@@ -599,20 +650,22 @@ function frame() {
 
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
-    <div class="modal">
-      <h2>MetroBuilder — Vollversion</h2>
-      <p class="muted">Alles aus dem GDD im lokalen Prototyp:</p>
+    <div class="modal intro-modal">
+      <div class="intro-badge">v1.1</div>
+      <h2>Willkommen in MetroBuilder</h2>
+      <p class="muted">Baue aus einer leeren Fläche deine Metropole — offline, lokal, mit Level-Aufstieg.</p>
       <ol class="loop">
-        <li>Produktionsketten & Infrastruktur</li>
-        <li>Dienste, Spezialzonen, Wahrzeichen</li>
-        <li>Handel, Depot-Angebote, Regionen</li>
-        <li>Club-Krieg, Bürgermeister-Wettbewerb, Katastrophen</li>
+        <li>Straßen legen & Produktionsketten starten</li>
+        <li>Wohnungen upgraden, Strom & Wasser halten</li>
+        <li>Handel, Club und Regionen freischalten</li>
+        <li>Als ${mayorTitle(1)} bis Level ${MAX_LEVEL} aufsteigen</li>
       </ol>
-      <div class="row" style="margin-top:0.9rem"><button id="go" class="primary">Los</button></div>
+      <div class="row" style="margin-top:0.9rem"><button id="go" class="primary">Metropole starten</button></div>
     </div>`;
   modal.querySelector('#go')?.addEventListener('click', () => {
     localStorage.setItem('metrobuilder-full-intro', '1');
     modal.innerHTML = '';
+    void haptic('medium');
   });
 }
 
