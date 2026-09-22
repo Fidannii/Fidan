@@ -1,11 +1,21 @@
 # Post-Launch Backlog (frozen until after store submit)
 
+## Moved from RC (feature freeze)
+
+- Audio / light music track
+- Split `main.ts` architecture cleanup
+- npm audit transitive `tar` / tooling majors
+- Economy fine-tune pass
+- Icon redesign (unless store rejects)
+- 100-seed multi-hour soak automation
+- Analytics expansion (keep minimal if ever added)
+- Screenshot device-size factory automation
+
 ## v3.1
 - Additional buildings / cosmetics
 - Extra events pack
 - English copy polish pass
 - Feature graphic variants
-- Light music track (licensed or original only)
 
 ## v3.2
 - More regions flavor

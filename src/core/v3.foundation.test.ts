@@ -253,4 +253,29 @@ describe('stress ticks', () => {
     expect(g.cash).toBeGreaterThanOrEqual(0);
     expect(Number.isFinite(g.simTimeMs!)).toBe(true);
   });
+
+  it('10 seeds × 400 ticks stay finite (RC soak)', () => {
+    const seeds = [1, 7, 42, 99, 256, 1024, 4096, 7777, 12345, 99991];
+    for (const seed of seeds) {
+      const g = createGame();
+      g.seed = seed >>> 0;
+      g.rngCount = 0;
+      const rt = ensureRuntime(g);
+      const say = () => {};
+      for (let i = 0; i < 400; i++) {
+        rt.clock.advance(250);
+        g.simTimeMs = rt.clock.simTimeMs;
+        tick(g, say);
+      }
+      expect(Number.isFinite(g.cash)).toBe(true);
+      expect(g.cash).toBeGreaterThanOrEqual(0);
+      expect(Number.isFinite(g.xp)).toBe(true);
+      expect(g.level).toBeGreaterThanOrEqual(1);
+      expect(g.level).toBeLessThanOrEqual(100);
+      if (g.traffic) {
+        expect(Number.isFinite(g.traffic.congestion)).toBe(true);
+        expect(g.traffic.congestion).toBeGreaterThanOrEqual(0);
+      }
+    }
+  }, 30_000);
 });

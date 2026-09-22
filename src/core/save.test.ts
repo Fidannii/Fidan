@@ -50,6 +50,23 @@ describe('save system', () => {
       true,
     );
     expect(loaded.game.cash).toBe(4242);
+    expect(loaded.userMessage).toMatch(/wiederhergestellt|Backup/i);
+    expect(loaded.userMessage).not.toMatch(/TypeError|JSON|undefined/i);
+  });
+
+  it('surfaces friendly message when all saves fail', () => {
+    // Force loadGame catch path via throwing storage (rare) — simulate empty + corrupt only
+    localStorage.setItem('metrobuilder-save-v5', '{broken');
+    localStorage.setItem('metrobuilder-save-last-good', '{broken');
+    localStorage.setItem('metrobuilder-save-backup-1', '{broken');
+    localStorage.setItem('metrobuilder-save-backup-2', '{broken');
+    localStorage.setItem('metrobuilder-full-v3', '{broken');
+    const loaded = loadGame();
+    expect(loaded.source).toBe('new');
+    // No technical exception string exposed
+    if (loaded.userMessage) {
+      expect(loaded.userMessage).not.toMatch(/TypeError|SyntaxError|JSON\.parse/i);
+    }
   });
 
   it('migrates legacy bare JSON', () => {

@@ -180,7 +180,9 @@ function say(msg: string) {
   }, 2200);
 }
 
-if (loaded.recovered) {
+if (loaded.userMessage) {
+  say(loaded.userMessage);
+} else if (loaded.recovered) {
   say(`Spielstand wiederhergestellt (${loaded.source}).`);
 } else if (loaded.source === 'legacy') {
   say('Spielstand migriert.');
@@ -1206,9 +1208,16 @@ canvas.addEventListener(
   { passive: false },
 );
 
+let rafStarted = false;
 function frame() {
   tick(g, say);
   view.draw(g);
+  requestAnimationFrame(frame);
+}
+
+function startLoop() {
+  if (rafStarted) return;
+  rafStarted = true;
   requestAnimationFrame(frame);
 }
 
@@ -1222,6 +1231,7 @@ document.addEventListener('visibilitychange', () => {
   } else {
     const prev = (g as Game & { _speedBeforeHide?: GameSpeed })._speedBeforeHide || '1x';
     cmdSetGameSpeed(g, prev, () => {});
+    startLoop();
   }
 });
 
@@ -1253,7 +1263,7 @@ document.addEventListener(
 
 refresh();
 paintTutorial();
-frame();
+startLoop();
 setInterval(() => save(g), 4000);
 
 void initIap({

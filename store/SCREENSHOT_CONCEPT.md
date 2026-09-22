@@ -1,17 +1,30 @@
-# Store Screenshot Concept — MetroBuilder 3.0
+# Store Screenshot Concept — MetroBuilder 3.0 (Final)
 
-Use **real gameplay** only. No mocked CGI.
+Use **real gameplay** only. Do **not** upload raw `qa/screens/` without device-size export.
 
-| # | Motto | Shot content |
-|---|-------|----------------|
-| 1 | DEINE STADT. DEINE ENTSCHEIDUNGEN. | Attractive isometric city, clean HUD (Cash/Pop/Happiness) |
-| 2 | BAUE. WACHSE. OPTIMIERE. | Build bar + road/house placement ghost |
-| 3 | BEHERRSCHE DEN VERKEHR. | Traffic overlay active, congestion visible |
-| 4 | HALTE DAS GLEICHGEWICHT. | Stadt panel cashflow + causes list |
-| 5 | ENTWICKLE DEINE METROPOLE. | Larger city / region or specialization |
+## Mottos
 
-## Video preview (optional, 15–30s)
+| # | DE | EN |
+|---|----|----|
+| 1 | DEINE STADT. DEINE ENTSCHEIDUNGEN. | YOUR CITY. YOUR CALLS. |
+| 2 | BAUE. WACHSE. OPTIMIERE. | BUILD. GROW. OPTIMIZE. |
+| 3 | BEHERRSCHE DEN VERKEHR. | MASTER THE TRAFFIC. |
+| 4 | HALTE DEIN BUDGET IM GLEICHGEWICHT. | KEEP YOUR BUDGET BALANCED. |
+| 5 | ENTWICKLE DEINE METROPOLE. | GROW YOUR METROPOLIS. |
 
-0–3s city → 3–7s build → 7–12s growth → 12–17s traffic → 17–22s management → 22–27s large city → 27–30s logo
+## Shot content
 
-Video is **not** a release blocker.
+1. Attractive city, clean HUD  
+2. Build mode + ghost  
+3. Traffic overlay  
+4. Economy / cashflow panel  
+5. Large city or region progress  
+
+## Device sizes
+
+- Apple: capture on required iPhone sizes (do not stretch)
+- Google: phone screenshots; Feature Graphic = brand + city, little text
+
+## Status
+
+Concept **READY**. Final device captures: **OPEN** (P1-07 / external).

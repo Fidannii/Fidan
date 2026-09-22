@@ -35,6 +35,8 @@ export interface LoadResult {
   game: Game;
   source: LoadSource;
   recovered: boolean;
+  /** User-facing message; never a raw exception string */
+  userMessage?: string;
 }
 
 function storage(): Storage | null {
@@ -221,26 +223,41 @@ export function persistGame(g: Game): boolean {
 }
 
 export function loadGame(): LoadResult {
-  const order: Array<{ key: string; source: LoadSource }> = [
-    { key: KEY_CURRENT, source: 'current' },
-    { key: KEY_LAST_GOOD, source: 'lastGood' },
-    { key: KEY_BACKUP_1, source: 'backup1' },
-    { key: KEY_BACKUP_2, source: 'backup2' },
-    { key: LEGACY_SAVE, source: 'legacy' },
-  ];
+  try {
+    const order: Array<{ key: string; source: LoadSource }> = [
+      { key: KEY_CURRENT, source: 'current' },
+      { key: KEY_LAST_GOOD, source: 'lastGood' },
+      { key: KEY_BACKUP_1, source: 'backup1' },
+      { key: KEY_BACKUP_2, source: 'backup2' },
+      { key: LEGACY_SAVE, source: 'legacy' },
+    ];
 
-  for (const { key, source } of order) {
-    const game = readKey(key);
-    if (game) {
-      return {
-        game,
-        source,
-        recovered: source !== 'current' && source !== 'legacy',
-      };
+    for (const { key, source } of order) {
+      const game = readKey(key);
+      if (game) {
+        const recovered = source !== 'current' && source !== 'legacy';
+        return {
+          game,
+          source,
+          recovered,
+          userMessage: recovered
+            ? 'Spielstand wiederhergestellt (Backup).'
+            : source === 'legacy'
+              ? 'Spielstand migriert.'
+              : undefined,
+        };
+      }
     }
-  }
 
-  return { game: createGame(), source: 'new', recovered: false };
+    return { game: createGame(), source: 'new', recovered: false };
+  } catch {
+    return {
+      game: createGame(),
+      source: 'new',
+      recovered: false,
+      userMessage: 'Spielstand konnte nicht geladen werden. Neues Spiel gestartet.',
+    };
+  }
 }
 
 export function clearAllSaves() {
