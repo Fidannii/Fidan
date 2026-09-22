@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="MetroBuilder" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#050d12" />
+    <title>MetroBuilder</title>
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="icon" type="image/png" href="./icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header id="hud"></header>
+      <main id="stage-wrap">
+        <canvas id="stage"></canvas>
+        <div id="toast" hidden></div>
+      </main>
+      <aside id="panel"></aside>
+      <nav id="build-bar"></nav>
+      <div id="modal-root"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

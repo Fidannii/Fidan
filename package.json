@@ -1,0 +1,43 @@
+{
+  "name": "metrobuilder",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:ios": "npm run cap:sync && npx cap open ios",
+    "cap:android": "npm run cap:sync && npx cap open android",
+    "release:prep": "npm run cap:sync && echo 'Fertig. Weiter: HOCHLADEN.md \u2014 Android Studio (.aab) oder Xcode (Archive)'",
+    "icons": "node scripts/generate-icons.mjs",
+    "screenshots": "node scripts/generate-store-screenshots.mjs",
+    "pack:appstore": "bash scripts/pack-appstore-zip.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "ci:gate": "npm run test && npm run build"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/app": "^7.1.0",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/haptics": "^7.0.2",
+    "@capacitor/ios": "^7.4.3",
+    "@capacitor/splash-screen": "^7.0.3",
+    "@capacitor/status-bar": "^7.0.3",
+    "cordova-plugin-purchase": "^13.12.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^7.4.3",
+    "@vitest/coverage-v8": "^5.0.1",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.55.0",
+    "sharp": "^0.35.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.2",
+    "vite-plugin-pwa": "^0.21.1",
+    "vitest": "^5.0.1"
+  }
+}
