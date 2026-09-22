@@ -112,6 +112,7 @@ export interface TradeOffer {
   amount: number;
   price: number;
   from: string;
+  avatar: string;
   expires: number;
 }
 
@@ -119,6 +120,7 @@ export interface ClubMember {
   name: string;
   score: number;
   ai: boolean;
+  avatar: string;
 }
 
 export interface Game {

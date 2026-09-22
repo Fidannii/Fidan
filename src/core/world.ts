@@ -130,10 +130,10 @@ export function createGame(region: RegionId = 'valley'): Game {
     club: {
       name: 'Metro Club',
       members: [
-        { name: 'Du', score: 0, ai: false },
-        { name: 'Lina', score: 40, ai: true },
-        { name: 'Omar', score: 55, ai: true },
-        { name: 'Mira', score: 30, ai: true },
+        { name: 'Du', score: 0, ai: false, avatar: 'player' },
+        { name: 'Lina', score: 40, ai: true, avatar: 'lina' },
+        { name: 'Omar', score: 55, ai: true, avatar: 'omar' },
+        { name: 'Mira', score: 30, ai: true, avatar: 'mira' },
       ],
       warScore: 0,
       warTarget: 100,

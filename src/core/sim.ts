@@ -22,10 +22,15 @@ import {
   takeIn,
   xp,
 } from './world';
+import { TRADER_IDS, avatarMeta } from '../ui/avatars';
 
 export type Say = (msg: string) => void;
 
-const NAMES = ['Alex', 'Sam', 'Noa', 'Kai', 'Eli', 'Ria', 'Jon', 'Ada'];
+const TRADERS = TRADER_IDS.map((id) => ({
+  id,
+  name: id[0].toUpperCase() + id.slice(1),
+  title: avatarMeta(id).title,
+}));
 
 export function canPlace(g: Game, x: number, y: number, id: BuildId): string | null {
   const c = cell(g, x, y);
@@ -292,12 +297,14 @@ export function refreshOffers(g: Game, now = Date.now()) {
     const res = keys[Math.floor(Math.random() * keys.length)];
     const amount = 1 + Math.floor(Math.random() * 3);
     const price = Math.max(1, RES[res].sell * amount + Math.floor(Math.random() * 6) - 2);
+    const trader = TRADERS[Math.floor(Math.random() * TRADERS.length)];
     list.push({
       id: `o${now}-${i}`,
       res,
       amount,
       price,
-      from: NAMES[Math.floor(Math.random() * NAMES.length)],
+      from: trader.name,
+      avatar: trader.id,
       expires: now + 90_000,
     });
   }
@@ -470,6 +477,16 @@ export function load(): Game {
     if (!g.cells?.length || g.size !== SIZE || !g.inv || !g.club) return createGame();
     g.selected = null;
     g.focus = null;
+    // migrate avatars
+    const defaults = ['player', 'lina', 'omar', 'mira'];
+    g.club.members = g.club.members.map((m, i) => ({
+      ...m,
+      avatar: m.avatar || defaults[i] || 'player',
+    }));
+    g.offers = (g.offers || []).map((o) => ({
+      ...o,
+      avatar: o.avatar || 'alex',
+    }));
     return g;
   } catch {
     return createGame();

@@ -28,6 +28,7 @@ import {
   upgradeService,
 } from './core/sim';
 import { View } from './render/view';
+import { avatarCard, avatarUrl } from './ui/avatars';
 
 const hud = document.querySelector<HTMLElement>('#hud')!;
 const panel = document.querySelector<HTMLElement>('#panel')!;
@@ -56,7 +57,10 @@ function paintHud() {
   const left = Math.max(0, g.weekEnds - Date.now());
   const m = Math.floor(left / 60000);
   hud.innerHTML = `
-    <div class="brand">MetroBuilder</div>
+    <div class="hud-player">
+      <img class="hud-avatar" src="${avatarUrl('player')}" alt="Du" width="64" height="64" />
+      <div class="brand">MetroBuilder</div>
+    </div>
     <div class="stat">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
     <div class="stat">💰 ${g.cash} <span>Credits</span></div>
     <div class="stat">💎 ${g.gems}</div>
@@ -144,9 +148,14 @@ function paintPanel() {
           ? g.offers
               .map(
                 (o) =>
-                  `<div class="quest"><strong>${o.from}</strong>
-                    <div class="muted">${o.amount}× ${RES[o.res].icon}${RES[o.res].name} für ${o.price}¢</div>
-                    <div class="row"><button data-offer="${o.id}" class="primary">Annehmen</button></div></div>`,
+                  `<div class="quest offer-row">
+                    ${avatarCard(o.avatar, { name: o.from, subtitle: 'Händler', size: 'sm' })}
+                    <div class="offer-body">
+                      <strong>${o.amount}× ${RES[o.res].icon} ${RES[o.res].name}</strong>
+                      <div class="muted">${o.price}¢</div>
+                      <div class="row"><button data-offer="${o.id}" class="primary">Annehmen</button></div>
+                    </div>
+                  </div>`,
               )
               .join('')
           : '<p class="muted">Warte auf Angebote…</p>'
@@ -154,20 +163,36 @@ function paintPanel() {
     `;
   } else if (tab === 'club') {
     const pct = Math.min(100, Math.round((g.club.warScore / g.club.warTarget) * 100));
+    const ranked = g.club.members.slice().sort((a, b) => b.score - a.score);
     body = `
       <h2>👥 ${g.club.name}</h2>
-      <p class="muted">Club-Krieg & Bürgermeister-Wettbewerb (lokal simuliert).</p>
+      <p class="muted">Club-Krieg & Bürgermeister-Wettbewerb — Avatare in Maximalqualität.</p>
+      <div class="avatar-hero">
+        ${avatarCard('player', {
+          name: 'Bürgermeister',
+          subtitle: `Platz #${g.mayorRank} · ${g.weekScore} WP`,
+          size: 'lg',
+          you: true,
+        })}
+      </div>
       <h3>Mitglieder</h3>
-      ${g.club.members
-        .slice()
-        .sort((a, b) => b.score - a.score)
-        .map((m) => `<div class="quest"><strong>${m.name}${m.ai ? '' : ' (Du)'}</strong><div class="muted">Score ${m.score}</div></div>`)
-        .join('')}
+      <div class="avatar-grid">
+        ${ranked
+          .map((m, i) =>
+            avatarCard(m.avatar, {
+              name: m.name,
+              subtitle: m.ai ? 'Club-Mitglied' : 'Bürgermeister',
+              size: 'md',
+              rank: i + 1,
+              score: m.score,
+              you: !m.ai,
+            }),
+          )
+          .join('')}
+      </div>
       <h3>Club-Krieg</h3>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <p class="muted">${g.club.warScore}/${g.club.warTarget} — bauen & sammeln zählt.</p>
-      <h3>Bürgermeister</h3>
-      <p class="muted">Aktuell Platz #${g.mayorRank} · Wochenpunktzahl ${g.weekScore}</p>
       <div class="row"><button id="a-disaster">🌪️ Katastrophe starten</button></div>
     `;
   } else if (tab === 'regions') {
