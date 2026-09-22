@@ -188,6 +188,36 @@ export function xpProgress(g: Game): { cur: number; need: number; pct: number } 
   return { cur, need, pct: Math.min(100, Math.round((cur / need) * 100)) };
 }
 
+/** Credits per 1 XP — rises with level & difficulty */
+export function xpCreditRate(level: number): number {
+  const d = difficulty(level);
+  return Math.max(1.2, 1.4 + level * 0.045 + (d.cost - 1) * 2.5);
+}
+
+/** Soft XP packs (credits) */
+export function xpPacks(g: Game): Array<{ id: string; xp: number; cost: number; label: string }> {
+  if (g.level >= MAX_LEVEL) return [];
+  const rate = xpCreditRate(g.level);
+  const packs = [
+    { id: 'xp50', xp: 50, label: '+50 XP' },
+    { id: 'xp200', xp: 200, label: '+200 XP' },
+    { id: 'xp500', xp: 500, label: '+500 XP' },
+  ];
+  return packs.map((p) => ({
+    ...p,
+    cost: Math.max(10, Math.floor(p.xp * rate)),
+  }));
+}
+
+/** Cost in credits to buy the remaining XP for the next level */
+export function buyLevelCost(g: Game): number | null {
+  if (g.level >= MAX_LEVEL) return null;
+  const need = xpNeeded(g.level);
+  const remain = Math.max(1, need - g.xp);
+  // Slight premium vs raw XP packs (~12%) so packs stay useful
+  return Math.max(25, Math.floor(remain * xpCreditRate(g.level) * 1.12));
+}
+
 /**
  * Grant XP and resolve any level-ups.
  * Returns list of level-up events (can be multiple if big XP dump).

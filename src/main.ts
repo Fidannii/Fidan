@@ -8,6 +8,8 @@ import {
   RES,
   acceptOffer,
   buy,
+  buyNextLevel,
+  buyXpPack,
   cell,
   city,
   collect,
@@ -27,7 +29,16 @@ import {
   upgradeHouse,
   upgradeService,
 } from './core/sim';
-import { MAX_LEVEL, difficulty, nextMilestones, nextUnlocks, scaledCost, xpProgress } from './core/progression';
+import {
+  MAX_LEVEL,
+  buyLevelCost,
+  difficulty,
+  nextMilestones,
+  nextUnlocks,
+  scaledCost,
+  xpPacks,
+  xpProgress,
+} from './core/progression';
 import type { LevelUpEvent } from './core/progression';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
@@ -223,6 +234,37 @@ function paintPanel() {
           <span>Verschleiß ×${diff.wear.toFixed(2)}</span>
         </div>
       </div>
+      ${
+        g.level >= MAX_LEVEL
+          ? ''
+          : (() => {
+              const packs = xpPacks(g);
+              const lvlCost = buyLevelCost(g);
+              const remain = xp.need - xp.cur;
+              return `
+      <h3>Mit Credits aufsteigen</h3>
+      <p class="muted">XP oder das nächste Level direkt mit 💰 Credits kaufen.</p>
+      <div class="shop-grid">
+        ${packs
+          .map(
+            (p) => `<button data-xp-pack="${p.id}" class="shop-btn" ${g.cash < p.cost ? 'disabled' : ''}>
+              <strong>${p.label}</strong>
+              <span class="cost">${p.cost}¢</span>
+            </button>`,
+          )
+          .join('')}
+        ${
+          lvlCost != null
+            ? `<button id="a-buy-level" class="shop-btn primary" ${g.cash < lvlCost ? 'disabled' : ''}>
+                <strong>Level ${g.level + 1} kaufen</strong>
+                <span class="muted">${remain} XP fehlen</span>
+                <span class="cost">${lvlCost}¢</span>
+              </button>`
+            : ''
+        }
+      </div>`;
+            })()
+      }
       <h3>XP verdienen</h3>
       <ul class="loop">
         <li>Gebäude bauen · +10 XP</li>
@@ -460,6 +502,23 @@ function wire() {
   });
   panel.querySelector('#a-expand')?.addEventListener('click', () => {
     expand(g, say);
+    refresh();
+  });
+  panel.querySelectorAll('[data-xp-pack]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const id = (el as HTMLElement).dataset.xpPack!;
+      if (buyXpPack(g, id, say)) {
+        void haptic('medium');
+        view.spawnBurst(g.size / 2, g.size / 2, '#f0d56a', 12);
+      }
+      refresh();
+    });
+  });
+  panel.querySelector('#a-buy-level')?.addEventListener('click', () => {
+    if (buyNextLevel(g, say)) {
+      void haptic('heavy');
+      view.spawnBurst(g.size / 2, g.size / 2, '#3ecf8e', 20);
+    }
     refresh();
   });
   panel.querySelector('#a-disaster')?.addEventListener('click', () => {

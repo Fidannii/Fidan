@@ -23,7 +23,7 @@ import {
   xp,
 } from './world';
 import { TRADER_IDS, avatarMeta } from '../ui/avatars';
-import { difficulty, scaledCost, scaledProdMs } from './progression';
+import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL, xpNeeded } from './progression';
 
 export type Say = (msg: string) => void;
 
@@ -273,6 +273,51 @@ export function speedUp(g: Game, x: number, y: number, say: Say): boolean {
   b.ready = d.produce.amount;
   b.jobAt = null;
   say('Fertig (−1 Gem)');
+  return true;
+}
+
+/** Buy an XP pack with credits (coins) */
+export function buyXpPack(g: Game, packId: string, say: Say): boolean {
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level erreicht.');
+    return false;
+  }
+  const pack = xpPacks(g).find((p) => p.id === packId);
+  if (!pack) {
+    say('Unbekanntes Paket.');
+    return false;
+  }
+  if (g.cash < pack.cost) {
+    say(`Braucht ${pack.cost}¢.`);
+    return false;
+  }
+  g.cash -= pack.cost;
+  xp(g, pack.xp);
+  say(`+${pack.xp} XP (−${pack.cost}¢)`);
+  return true;
+}
+
+/** Pay credits to fill remaining XP and level up once */
+export function buyNextLevel(g: Game, say: Say): boolean {
+  if (g.level >= MAX_LEVEL) {
+    say('Max-Level erreicht.');
+    return false;
+  }
+  const cost = buyLevelCost(g);
+  if (cost == null) {
+    say('Kein Level-Kauf möglich.');
+    return false;
+  }
+  if (g.cash < cost) {
+    say(`Braucht ${cost}¢ für Level-Up.`);
+    return false;
+  }
+  const before = g.level;
+  const remain = Math.max(1, xpNeeded(g.level) - g.xp);
+  g.cash -= cost;
+  xp(g, remain);
+  if (g.level > before) say(`Level ${g.level}! (−${cost}¢)`);
+  else say(`+${remain} XP (−${cost}¢)`);
   return true;
 }
 
