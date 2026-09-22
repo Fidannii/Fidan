@@ -22,7 +22,7 @@ export class View {
   ctx: CanvasRenderingContext2D;
   camX = 0;
   camY = 0;
-  scale = 1.15;
+  scale = 1.45;
   hover: { x: number; y: number } | null = null;
   particles: Particle[] = [];
   time = 0;
@@ -253,9 +253,53 @@ export class View {
     // depth sort: draw by x+y
     const tiles = g.cells.slice().sort((a, b) => a.x + a.y - (b.x + b.y));
 
+    // island cliff under unlocked tiles
+    for (const c of tiles) {
+      if (c.terrain === 'void') continue;
+      const p = this.toScreen(c.x, c.y);
+      if (p.x < -80 || p.y < -80 || p.x > w + 80 || p.y > h + 120) continue;
+      const neighbors = [
+        [1, 0],
+        [0, 1],
+        [1, 1],
+      ];
+      const s = this.scale;
+      const hw = (TW / 2) * s;
+      const hh = (TH / 2) * s;
+      const depth = 14 * s;
+      for (const [dx, dy] of neighbors) {
+        const n = g.cells.find((t) => t.x === c.x + dx && t.y === c.y + dy);
+        if (n && n.terrain !== 'void') continue;
+        ctx.beginPath();
+        if (dx === 1 && dy === 0) {
+          ctx.moveTo(p.x + hw, p.y);
+          ctx.lineTo(p.x, p.y + hh);
+          ctx.lineTo(p.x, p.y + hh + depth);
+          ctx.lineTo(p.x + hw, p.y + depth);
+        } else if (dx === 0 && dy === 1) {
+          ctx.moveTo(p.x - hw, p.y);
+          ctx.lineTo(p.x, p.y + hh);
+          ctx.lineTo(p.x, p.y + hh + depth);
+          ctx.lineTo(p.x - hw, p.y + depth);
+        } else {
+          ctx.moveTo(p.x, p.y + hh);
+          ctx.lineTo(p.x, p.y + hh + depth);
+          ctx.lineTo(p.x, p.y + hh + depth);
+        }
+        ctx.closePath();
+        const cliff = ctx.createLinearGradient(p.x, p.y, p.x, p.y + depth);
+        cliff.addColorStop(0, '#3d5c40');
+        cliff.addColorStop(0.5, '#2a3d2e');
+        cliff.addColorStop(1, '#121a14');
+        ctx.fillStyle = cliff;
+        ctx.fill();
+      }
+    }
+
     for (const c of tiles) {
       const p = this.toScreen(c.x, c.y);
       if (p.x < -80 || p.y < -80 || p.x > w + 80 || p.y > h + 80) continue;
+      if (c.terrain === 'void') continue;
       this.drawTile(g, c);
     }
 

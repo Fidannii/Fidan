@@ -135,37 +135,109 @@ export function drawBuildingSprite(
       break;
     }
     case 'house': {
-      const h = (10 + level * 6) * s;
-      isoBox(ctx, cx, cy, hw * 0.72, hh * 0.72, h, '#e8b07a', '#b07848', '#c98958');
+      const h = (12 + level * 7) * s;
+      isoBox(ctx, cx, cy, hw * 0.78, hh * 0.78, h, '#f0c49a', '#a66b3c', '#c4844f');
       // roof
       ctx.beginPath();
-      ctx.moveTo(cx, cy - hh * 0.72 - h - 8 * s);
-      ctx.lineTo(cx + hw * 0.82, cy - h);
-      ctx.lineTo(cx, cy + hh * 0.2 - h);
-      ctx.lineTo(cx - hw * 0.82, cy - h);
+      ctx.moveTo(cx, cy - hh * 0.78 - h - 10 * s);
+      ctx.lineTo(cx + hw * 0.9, cy - h + 2 * s);
+      ctx.lineTo(cx, cy + hh * 0.15 - h);
+      ctx.lineTo(cx - hw * 0.9, cy - h + 2 * s);
       ctx.closePath();
-      ctx.fillStyle = level >= 3 ? '#6b3a4a' : '#8b4518';
+      const roof = ctx.createLinearGradient(cx - hw, cy - h, cx + hw, cy - h);
+      roof.addColorStop(0, level >= 3 ? '#5c2a3a' : '#7a3b1e');
+      roof.addColorStop(1, level >= 3 ? '#8b4558' : '#a85228');
+      ctx.fillStyle = roof;
       ctx.fill();
-      windowRow(ctx, cx - 6 * s, cy - h + 4 * s, 12 * s, Math.min(3, level), 2, true);
+      // chimney
+      ctx.fillStyle = '#6b4423';
+      ctx.fillRect(cx + 6 * s, cy - h - 16 * s, 4 * s, 10 * s);
+      windowRow(ctx, cx - 7 * s, cy - h + 5 * s, 14 * s, Math.min(4, level + 1), 2, true);
+      // door
+      ctx.fillStyle = '#4a2c14';
+      ctx.fillRect(cx - 3 * s, cy - 2 * s, 6 * s, 8 * s);
       if (level >= 4) {
-        // tower spike
-        ctx.fillStyle = '#d4d4d8';
-        ctx.fillRect(cx - 2 * s, cy - h - 18 * s, 4 * s, 18 * s);
+        ctx.fillStyle = '#d8dee6';
+        ctx.fillRect(cx - 3 * s, cy - h - 28 * s, 6 * s, 22 * s);
+        ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.25 * Math.sin(t / 500)})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy - h - 32 * s, 10 * s, 0, Math.PI * 2);
+        ctx.fill();
       }
       break;
     }
     case 'woodcutter': {
-      isoBox(ctx, cx, cy, hw * 0.55, hh * 0.55, 10 * s, '#3d8b5f', '#246b42', '#2f7a4f');
-      // tree
-      ctx.fillStyle = '#1e4d32';
-      ctx.beginPath();
-      ctx.moveTo(cx + 8 * s, cy - 4 * s);
-      ctx.lineTo(cx + 18 * s, cy - 22 * s);
-      ctx.lineTo(cx + 28 * s, cy - 4 * s);
-      ctx.closePath();
-      ctx.fill();
+      isoBox(ctx, cx, cy, hw * 0.5, hh * 0.5, 9 * s, '#4caf76', '#2d6a4f', '#3d8b5f');
+      // stacked logs
       ctx.fillStyle = '#6b4226';
-      ctx.fillRect(cx + 16 * s, cy - 4 * s, 3 * s, 8 * s);
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.ellipse(cx - 10 * s + i * 3 * s, cy + 2 * s, 5 * s, 2.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // pine
+      ctx.fillStyle = '#1b4332';
+      for (const [oy, r] of [
+        [-8, 9],
+        [-16, 7],
+        [-23, 5],
+      ] as const) {
+        ctx.beginPath();
+        ctx.moveTo(cx + 10 * s, cy + oy * s + 8 * s);
+        ctx.lineTo(cx + 10 * s + r * s, cy + oy * s + 8 * s);
+        ctx.lineTo(cx + 10 * s, cy + oy * s - r * 0.3 * s);
+        ctx.lineTo(cx + 10 * s - r * s, cy + oy * s + 8 * s);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#5c4033';
+      ctx.fillRect(cx + 9 * s, cy, 3 * s, 8 * s);
+      break;
+    }
+    case 'power': {
+      isoBox(ctx, cx, cy, hw * 0.5, hh * 0.48, 9 * s, '#ffe066', '#c9a227', '#e0b93a');
+      // twin cooling towers
+      for (const ox of [-8, 8]) {
+        ctx.fillStyle = '#e8eef2';
+        ctx.beginPath();
+        ctx.moveTo(cx + ox * s - 5 * s, cy);
+        ctx.quadraticCurveTo(cx + ox * s - 7 * s, cy - 18 * s, cx + ox * s - 3 * s, cy - 30 * s);
+        ctx.lineTo(cx + ox * s + 3 * s, cy - 30 * s);
+        ctx.quadraticCurveTo(cx + ox * s + 7 * s, cy - 18 * s, cx + ox * s + 5 * s, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(210,215,225,${0.25 + 0.2 * Math.sin(t / 350 + ox)})`;
+        ctx.beginPath();
+        ctx.arc(cx + ox * s, cy - 36 * s - Math.sin(t / 400) * 3 * s, 5 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    }
+    case 'water': {
+      // tower base
+      isoBox(ctx, cx, cy, hw * 0.35, hh * 0.32, 8 * s, '#8ecae6', '#1d6f94', '#3d9bc4');
+      // tank
+      const tg = ctx.createLinearGradient(cx - 10 * s, cy - 28 * s, cx + 10 * s, cy - 8 * s);
+      tg.addColorStop(0, '#bde0fe');
+      tg.addColorStop(0.5, '#4ea8de');
+      tg.addColorStop(1, '#1d6f94');
+      ctx.fillStyle = tg;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 20 * s, 11 * s, 8 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.2 * Math.sin(t / 400)})`;
+      ctx.beginPath();
+      ctx.ellipse(cx - 3 * s, cy - 22 * s, 4 * s, 2.5 * s, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      // legs
+      ctx.strokeStyle = '#3d5a6c';
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath();
+      ctx.moveTo(cx - 6 * s, cy - 12 * s);
+      ctx.lineTo(cx - 8 * s, cy + 2 * s);
+      ctx.moveTo(cx + 6 * s, cy - 12 * s);
+      ctx.lineTo(cx + 8 * s, cy + 2 * s);
+      ctx.stroke();
       break;
     }
     case 'sawmill': {
@@ -216,23 +288,6 @@ export function drawBuildingSprite(
       isoBox(ctx, cx, cy, hw * 0.7, hh * 0.65, 13 * s, '#d4a373', '#8b5e34', '#a67240');
       break;
     }
-    case 'power': {
-      isoBox(ctx, cx, cy, hw * 0.55, hh * 0.5, 10 * s, '#f4d35e', '#c9a227', '#e0b93a');
-      // cooling tower
-      ctx.fillStyle = '#dfe3e8';
-      ctx.beginPath();
-      ctx.moveTo(cx - 8 * s, cy);
-      ctx.quadraticCurveTo(cx - 10 * s, cy - 20 * s, cx - 4 * s, cy - 28 * s);
-      ctx.lineTo(cx + 4 * s, cy - 28 * s);
-      ctx.quadraticCurveTo(cx + 10 * s, cy - 20 * s, cx + 8 * s, cy);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = `rgba(220,220,230,${0.3 + 0.2 * Math.sin(t / 350)})`;
-      ctx.beginPath();
-      ctx.arc(cx, cy - 34 * s, 6 * s, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
     case 'solar': {
       isoDiamond(ctx, cx, cy, hw, hh, '#1a3a4a');
       ctx.fillStyle = '#1d3557';
@@ -250,18 +305,6 @@ export function drawBuildingSprite(
       ctx.fillStyle = `rgba(255,255,200,${0.35 + 0.25 * Math.sin(t / 500)})`;
       ctx.beginPath();
       ctx.arc(cx + 6 * s, cy - 4 * s, 3 * s, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'water': {
-      isoBox(ctx, cx, cy, hw * 0.45, hh * 0.4, 18 * s, '#7ad4ff', '#2a7fa8', '#3d9bc4');
-      ctx.fillStyle = '#5dade2';
-      ctx.beginPath();
-      ctx.arc(cx, cy - 22 * s, 8 * s, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = `rgba(255,255,255,${0.25 + 0.15 * Math.sin(t / 400)})`;
-      ctx.beginPath();
-      ctx.arc(cx - 2 * s, cy - 24 * s, 3 * s, 0, Math.PI * 2);
       ctx.fill();
       break;
     }
