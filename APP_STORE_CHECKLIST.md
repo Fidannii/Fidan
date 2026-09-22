@@ -1,31 +1,36 @@
-# App Store Connect — Checkliste (1.0.0)
+# App Store / Play Store — Checkliste (1.3.1)
 
 ## Vor dem Upload
 - [ ] Apple Developer Account aktiv
 - [ ] App in App Store Connect angelegt (Bundle ID `com.fidani.metrobuilder`)
-- [ ] GitHub Pages: `/docs` → Privacy live (`…/privacy.html`)
+- [ ] **IAP Apple:** 4 Consumables in App Store Connect (`store/IAP_SETUP.md`)
+- [ ] **IAP Google:** dieselben Product IDs in Play Console + Internal testing AAB
+- [ ] Xcode Capability: **In-App Purchase**
+- [ ] Sandbox-Kauf (Apple-ID) und/oder License-Tester (Google) OK
+- [ ] GitHub Pages: `/docs` → Privacy live
 - [ ] Screenshots aus `store/screenshots/` hochgeladen
 - [ ] Listing aus `store/APP_STORE_LISTING_DE.md` eingefügt
 - [ ] `npm run cap:sync` auf dem Mac ausgeführt
 - [ ] Xcode Signing: eigenes Team
 
-## Archive
+## Archive (iOS / Apple App Store)
 1. `npx cap open ios`
-2. Destination: Any iOS Device
-3. Product → Archive
-4. Distribute → App Store Connect → Upload
+2. Optional: Scheme → StoreKit Configuration → `StoreKitConfig.storekit`
+3. Destination: Any iOS Device
+4. Product → Archive → App Store Connect → Upload
 
-- [ ] IAP-Produkte in App Store Connect angelegt (`store/IAP_SETUP.md`)
-- [ ] Xcode Capability: **In-App Purchase**
-- [ ] Sandbox-Kauf getestet
-- [ ] Review-Notizen mit IAP-Hinweis
-- [ ] Login nötig? Nein
-- [ ] IAP aktiv? Ja — Consumable XP / Level-Boost
-- [ ] Tracking? Nein
-- [ ] Altersfreigabe: 9+
-- [ ] Kategorie: Spiele / Simulation
-- [ ] Export Compliance: Nein (Non-Exempt Encryption) — bereits in Info.plist
+## Bundle (Android / Google Play)
+1. `npx cap open android`
+2. Generate Signed Bundle → Play Console (Internal testing zuerst)
+
+## Review-Formular
+- **Login nötig?** Nein
+- **IAP aktiv?** Ja — Apple App Store + Google Play (Consumables)
+- **Tracking?** Nein
+- **Altersfreigabe:** 9+
+- **Kategorie:** Spiele / Simulation
+- **Export Compliance:** Nein — Info.plist gesetzt
 
 ## Nach dem Upload
-- [ ] Build in Connect auswählen
+- [ ] Build auswählen
 - [ ] Zur Prüfung einreichen
