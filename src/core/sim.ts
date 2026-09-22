@@ -23,6 +23,7 @@ import {
   xp,
 } from './world';
 import { TRADER_IDS, avatarMeta } from '../ui/avatars';
+import { difficulty, scaledCost, scaledProdMs } from './progression';
 
 export type Say = (msg: string) => void;
 
@@ -43,7 +44,8 @@ export function canPlace(g: Game, x: number, y: number, id: BuildId): string | n
   if (d.region && !g.unlockedRegions.includes(d.region) && g.region !== d.region) {
     return `Region ${REGIONS[d.region].name} nötig.`;
   }
-  if (g.cash < d.cost) return 'Zu wenig Credits.';
+  const price = scaledCost(d.cost, g.level);
+  if (g.cash < price) return 'Zu wenig Credits.';
   if (d.needsRoad && !roadNext(g, x, y)) return 'Straße muss angrenzen.';
   return null;
 }
@@ -56,7 +58,8 @@ export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boo
   }
   const c = cell(g, x, y)!;
   const d = DEFS[id];
-  g.cash -= d.cost;
+  const price = scaledCost(d.cost, g.level);
+  g.cash -= price;
   c.b = {
     id,
     level: 1,
@@ -69,7 +72,7 @@ export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boo
   if (id === 'road' || id === 'highway') quest(g, 'roads');
   if (id === 'police' || id === 'fire') quest(g, 'services');
   g.club.warScore += 1;
-  say(`${d.name} (−${d.cost})`);
+  say(`${d.name} (−${price})`);
   return true;
 }
 
@@ -100,7 +103,7 @@ export function tickProd(g: Game, now = Date.now()) {
     const d = DEFS[b.id];
     if (!d.produce) continue;
     if (!supplied(g, c.x, c.y, b.id)) {
-      b.wear = Math.min(100, b.wear + 0.04);
+      b.wear = Math.min(100, b.wear + 0.04 * difficulty(g.level).wear);
       continue;
     }
     b.wear = Math.max(0, b.wear - 0.06);
@@ -112,7 +115,13 @@ export function tickProd(g: Game, now = Date.now()) {
       }
       continue;
     }
-    const need = d.produce.ms * (1 + b.wear / 100) * (g.region === 'snow' && d.power > 0 ? 1.15 : 1);
+    const need = scaledProdMs(
+      d.produce.ms,
+      g.level,
+      b.wear,
+      g.region === 'snow',
+      d.power > 0,
+    );
     if (now - b.jobAt >= need) {
       b.ready = d.produce.amount;
       b.jobAt = null;
@@ -157,11 +166,17 @@ export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
     say('Max-Stufe.');
     return false;
   }
+  const needLv = next.level === 5 ? 40 : next.level === 6 ? 70 : 1;
+  if (g.level < needLv) {
+    say(`Hochhaus-Stufen ab Level ${needLv}.`);
+    return false;
+  }
   if (next.needSchool && !covered(g, x, y, ['school', 'uni'])) {
     say('Schule/Uni in der Nähe nötig.');
     return false;
   }
-  if (g.cash < next.cost) {
+  const price = scaledCost(next.cost, g.level);
+  if (g.cash < price) {
     say('Zu wenig Credits.');
     return false;
   }
@@ -169,12 +184,12 @@ export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
     say('Waren fehlen.');
     return false;
   }
-  g.cash -= next.cost;
+  g.cash -= price;
   takeIn(g, next.needs);
   c.b.level = next.level;
   g.stats.upgrades += 1;
   quest(g, 'upgrade');
-  xp(g, 28);
+  xp(g, 28 + next.level * 4);
   say(`→ ${next.name}`);
   return true;
 }
@@ -191,7 +206,7 @@ export function upgradeService(g: Game, x: number, y: number, say: Say): boolean
     say('Max-Ausbau.');
     return false;
   }
-  const cost = Math.floor(d.cost * 0.8 * c.b.level);
+  const cost = scaledCost(Math.floor(d.cost * 0.8 * c.b.level), g.level);
   if (g.cash < cost) {
     say(`Kostet ${cost}.`);
     return false;
@@ -215,7 +230,7 @@ export function taxes(g: Game, say: Say, now = Date.now()) {
 export function expand(g: Game, say: Say): boolean {
   const useToken = g.tokens >= 1;
   const useKey = !useToken && g.keys.bronze >= 1;
-  const cashCost = 100 + g.unlock * 25;
+  const cashCost = scaledCost(100 + g.unlock * 25 + Math.floor(g.level * 4), g.level);
   if (!useToken && !useKey && g.cash < cashCost) {
     say(`Token, Bronzeschlüssel oder ${cashCost}¢.`);
     return false;
@@ -458,7 +473,13 @@ export function prog(g: Game, x: number, y: number): number {
   if (!b || !d?.produce) return 0;
   if (b.ready > 0) return 1;
   if (b.jobAt == null) return 0;
-  const need = d.produce.ms * (1 + b.wear / 100);
+  const need = scaledProdMs(
+    d.produce.ms,
+    g.level,
+    b.wear,
+    g.region === 'snow',
+    d.power > 0,
+  );
   return Math.min(1, (Date.now() - b.jobAt) / need);
 }
 

@@ -707,6 +707,62 @@ button:disabled {
   border: 1px solid rgba(94, 234, 180, 0.28);
 }
 
+.diff-card {
+  margin-top: 0.65rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.diff-head {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin-bottom: 0.25rem;
+}
+
+.diff-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.diff-stats span {
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diff-leicht { border-color: rgba(62, 207, 142, 0.4); }
+.diff-normal { border-color: rgba(122, 212, 255, 0.4); }
+.diff-anspruchsvoll { border-color: rgba(240, 213, 106, 0.45); }
+.diff-schwer { border-color: rgba(251, 146, 60, 0.5); }
+.diff-extrem { border-color: rgba(255, 107, 107, 0.55); }
+.diff-legendär { border-color: rgba(196, 181, 253, 0.65); box-shadow: 0 0 20px rgba(196, 181, 253, 0.15); }
+
+.stat.diff-leicht { border-color: rgba(62, 207, 142, 0.45); }
+.stat.diff-normal { border-color: rgba(122, 212, 255, 0.4); }
+.stat.diff-anspruchsvoll { border-color: rgba(240, 213, 106, 0.45); color: #f5e4a0; }
+.stat.diff-schwer { border-color: rgba(251, 146, 60, 0.5); color: #fdba74; }
+.stat.diff-extrem { border-color: rgba(255, 107, 107, 0.55); color: #ffb0b0; }
+.stat.diff-legendär { border-color: rgba(196, 181, 253, 0.65); color: #ddd6fe; }
+
+.milestone-banner {
+  display: inline-block;
+  margin: 0.35rem 0 0.55rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #042218;
+  background: linear-gradient(90deg, #f0d56a, #3ecf8e);
+}
+
 .level-badge {
   flex: 0 0 auto;
   width: 64px;

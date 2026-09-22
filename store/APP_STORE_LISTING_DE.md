@@ -25,8 +25,8 @@ Kernfortschritt ist ohne Zahlung erreichbar. Credits, Gems und Schlüssel sind v
 ## Keywords (≤100 chars, comma-separated)
 Städtebau,Simulation,Stadt,Bauen,Strategie,Idle,Wirtschaft,Metropole
 
-## What's New (1.1.0)
-Grafik & Atmosphäre auf nächster Stufe: detailliertere Gebäude, Bürger auf Straßen, Floating-Feedback, Bürgermeister-Titel, Zufriedenheits-Meter und poliertes UI.
+## What's New (1.2.0)
+Level-Aufstieg bis 100 mit steigender Schwierigkeit: steilere XP-Kurve, gestaffelte Freischaltungen, teurere Bauten, langsamere Produktion, Hochhaus-Stufen und Meilenstein-Belohnungen.
 
 ## Category
 Primary: Games → Simulation

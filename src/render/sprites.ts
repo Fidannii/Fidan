@@ -234,13 +234,30 @@ export function drawBuildingSprite(
         ctx.fill();
       }
       if (level >= 4) {
-        // tower / skyscraper top
         ctx.fillStyle = '#cfd6de';
         ctx.fillRect(cx - 4 * s, cy - h - 34 * s, 8 * s, 28 * s);
         windowRow(ctx, cx - 3 * s, cy - h - 30 * s, 6 * s, 4, 1, true, t);
         ctx.fillStyle = `rgba(255,220,120,${0.3 + 0.3 * pulse})`;
         ctx.beginPath();
         ctx.arc(cx, cy - h - 38 * s, 9 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (level >= 5) {
+        // high-rise
+        ctx.fillStyle = '#c8d0d8';
+        ctx.fillRect(cx - 5 * s, cy - h - 42 * s, 10 * s, 36 * s);
+        windowRow(ctx, cx - 4 * s, cy - h - 38 * s, 8 * s, 5, 2, true, t);
+        ctx.fillStyle = `rgba(255,220,120,${0.3 + 0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy - h - 46 * s, 8 * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (level >= 6) {
+        ctx.fillStyle = '#e8eef4';
+        ctx.fillRect(cx - 3 * s, cy - h - 62 * s, 6 * s, 22 * s);
+        ctx.fillStyle = `rgba(120,220,255,${0.35 + 0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy - h - 66 * s, 10 * s, 0, Math.PI * 2);
         ctx.fill();
       }
       break;

@@ -82,8 +82,8 @@ function makeDemoSave() {
     cells,
     size: SIZE,
     unlock: START_R,
-    level: 12,
-    xp: 420,
+    level: 28,
+    xp: 1200,
     lastTax: Date.now(),
     selected: null,
     focus: null,
@@ -137,9 +137,10 @@ function makeDemoSave() {
     stats: { collected: 120, upgrades: 8, disasters: 1 },
     pendingLevelUps: [
       {
-        level: 12,
-        reward: { cash: 340, gems: 2, tokens: 0, bronze: 1 },
-        unlocks: ['stadium', 'cinema'],
+        level: 30,
+        reward: { cash: 920, gems: 4, tokens: 1, bronze: 1 },
+        unlocks: ['school'],
+        milestone: 'Meilenstein: Dienstnetz',
       },
     ],
   };

@@ -27,7 +27,7 @@ import {
   upgradeHouse,
   upgradeService,
 } from './core/sim';
-import { MAX_LEVEL, nextUnlocks, xpProgress } from './core/progression';
+import { MAX_LEVEL, difficulty, nextMilestones, nextUnlocks, scaledCost, xpProgress } from './core/progression';
 import type { LevelUpEvent } from './core/progression';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
@@ -68,12 +68,22 @@ async function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
 }
 
 function mayorTitle(level: number): string {
-  if (level >= 25) return 'Metropol-Legende';
-  if (level >= 20) return 'Großstadt-Ikone';
-  if (level >= 15) return 'Stadtvisionär';
+  if (level >= 100) return 'Legende der 100';
+  if (level >= 90) return 'Weltarchitekt';
+  if (level >= 80) return 'Weltstadt-Mayor';
+  if (level >= 70) return 'Kontinent-Planer';
+  if (level >= 60) return 'Mega-Mayor';
+  if (level >= 50) return 'Metropol-Legende';
+  if (level >= 40) return 'Handelsfürst';
+  if (level >= 30) return 'Großstadt-Ikone';
+  if (level >= 20) return 'Stadtvisionär';
   if (level >= 10) return 'Stadtrat';
   if (level >= 5) return 'Jungbürgermeister';
   return 'Siedler';
+}
+
+function diffClass(tier: string): string {
+  return `diff-${tier}`;
 }
 
 function satTone(sat: number): string {
@@ -132,6 +142,7 @@ function paintHud() {
     <div class="stat ${satTone(s.sat)}">😊 ${s.sat}%</div>
     <div class="stat">📈 ${s.tax}<span>/18s</span></div>
     <div class="stat">⭐ ${xp.cur}/${xp.need} <span>XP</span></div>
+    <div class="stat ${diffClass(difficulty(g.level).tier)}">⚔ ${difficulty(g.level).label}</div>
     <div class="stat">🏆 #${g.mayorRank} <span>${m}m</span></div>
   `;
 }
@@ -140,10 +151,11 @@ function paintBar() {
   bar.innerHTML = BUILD_ORDER.map((id) => {
     const d = DEFS[id];
     const locked = g.level < d.unlockLv;
+    const price = scaledCost(d.cost, g.level);
     return `<button class="build-btn ${g.selected === id ? 'active' : ''}" data-id="${id}" ${locked ? 'disabled' : ''} title="${d.blurb}">
       <span class="emoji">${d.icon}</span>
       <span>${d.name}</span>
-      <span class="cost">${locked ? `Lv${d.unlockLv}` : `${d.cost}¢`}</span>
+      <span class="cost">${locked ? `Lv${d.unlockLv}` : `${price}¢`}</span>
     </button>`;
   }).join('');
 }
@@ -188,23 +200,34 @@ function paintPanel() {
   if (tab === 'level') {
     const xp = xpProgress(g);
     const upcoming = nextUnlocks(g, 6);
+    const miles = nextMilestones(g, 4);
     const unlocked = BUILD_ORDER.filter((id) => DEFS[id].unlockLv <= g.level);
+    const diff = difficulty(g.level);
     body = `
       <h2>⭐ Level-Aufstieg</h2>
-      <p class="muted">Titel: <strong>${mayorTitle(g.level)}</strong> — baue, produziere und upgrade bis Level ${MAX_LEVEL}.</p>
+      <p class="muted">Titel: <strong>${mayorTitle(g.level)}</strong> — Ziel Level ${MAX_LEVEL}.</p>
       <div class="level-card">
         <div class="level-badge">Lv ${g.level}</div>
         <div class="level-xp">
           <strong>${xp.cur} / ${xp.need} XP</strong>
           <div class="xp-bar lg"><i style="width:${xp.pct}%"></i></div>
-          <p class="muted">${g.level >= MAX_LEVEL ? 'Maximallevel erreicht!' : `${xp.need - xp.cur} XP bis Level ${g.level + 1}`}</p>
+          <p class="muted">${g.level >= MAX_LEVEL ? 'Maximallevel 100 erreicht!' : `${xp.need - xp.cur} XP bis Level ${g.level + 1}`}</p>
+        </div>
+      </div>
+      <div class="diff-card ${diffClass(diff.tier)}">
+        <div class="diff-head">Schwierigkeit · ${diff.label}</div>
+        <p class="muted">${diff.blurb}</p>
+        <div class="diff-stats">
+          <span>Produktion ×${diff.prod.toFixed(2)}</span>
+          <span>Kosten ×${diff.cost.toFixed(2)}</span>
+          <span>Verschleiß ×${diff.wear.toFixed(2)}</span>
         </div>
       </div>
       <h3>XP verdienen</h3>
       <ul class="loop">
         <li>Gebäude bauen · +10 XP</li>
         <li>Ressourcen sammeln · +8 XP</li>
-        <li>Haus-Upgrade · +28 XP</li>
+        <li>Haus-Upgrade · +28–52 XP</li>
         <li>Service-Ausbau · +16 XP</li>
         <li>Stadt erweitern · +35 XP</li>
       </ul>
@@ -221,7 +244,15 @@ function paintPanel() {
               .join('')
           : '<p class="muted">Alle Gebäude freigeschaltet.</p>'
       }
-      <h3>Freigeschaltet (${unlocked.length})</h3>
+      <h3>Meilensteine</h3>
+      ${
+        miles.length
+          ? miles
+              .map((m) => `<div class="quest"><strong>Lv ${m.level}</strong><div class="muted">${m.title}</div></div>`)
+              .join('')
+          : '<p class="muted">Alle Meilensteine erreicht.</p>'
+      }
+      <h3>Freigeschaltet (${unlocked.length}/${BUILD_ORDER.length})</h3>
       <div class="unlock-chips">
         ${unlocked.map((id) => `<span class="chip">${DEFS[id].icon} ${DEFS[id].name}</span>`).join('')}
       </div>
@@ -326,6 +357,8 @@ function paintPanel() {
     const p = prog(g, f.x, f.y);
     const next = f.b.id === 'house' ? HOUSE.find((h) => h.level === f.b!.level + 1) : null;
     const tier = f.b.id === 'house' ? HOUSE[f.b.level - 1] : null;
+    const upNeedLv = next ? (next.level === 5 ? 40 : next.level === 6 ? 70 : 0) : 0;
+    const upPrice = next ? scaledCost(next.cost, g.level) : 0;
     body = `
       <h2>${d.icon} ${d.name}</h2>
       <p class="muted">${d.blurb}</p>
@@ -340,7 +373,11 @@ function paintPanel() {
       <div class="row">
         ${f.b.ready > 0 ? `<button id="a-collect" class="primary">Einsammeln</button>` : ''}
         ${d.produce && f.b.jobAt ? `<button id="a-speed">⚡ Gem</button>` : ''}
-        ${next ? `<button id="a-up" class="primary">→ ${next.name} (${next.cost}¢)</button>` : ''}
+        ${
+          next
+            ? `<button id="a-up" class="primary" ${g.level < upNeedLv ? 'disabled' : ''}>→ ${next.name} (${upPrice}¢${upNeedLv ? ` · Lv${upNeedLv}` : ''})</button>`
+            : ''
+        }
         ${d.radius && f.b.id !== 'house' ? `<button id="a-svc">Ausbau Radius</button>` : ''}
         <button id="a-demo" class="danger">Abreißen</button>
       </div>
@@ -483,12 +520,14 @@ function showLevelUp(ev: LevelUpEvent) {
        </div>`
     : `<p class="muted">Keine neuen Gebäude — trotzdem starke Belohnungen.</p>`;
   const r = ev.reward;
+  const diff = difficulty(ev.level);
   modal.innerHTML = `
     <div class="modal level-up-modal">
       <div class="level-up-burst">LEVEL UP</div>
       <div class="level-up-title">${mayorTitle(ev.level)}</div>
       <h2>Level ${ev.level} erreicht!</h2>
-      <p class="muted">Dein Aufstieg als Bürgermeister.</p>
+      ${ev.milestone ? `<p class="milestone-banner">${ev.milestone}</p>` : ''}
+      <p class="muted">Schwierigkeit jetzt: <strong>${diff.label}</strong> · Produktion ×${diff.prod.toFixed(2)}</p>
       <div class="reward-grid">
         <div class="reward">💰 +${r.cash}</div>
         <div class="reward">💎 +${r.gems}</div>
