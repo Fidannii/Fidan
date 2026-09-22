@@ -150,6 +150,14 @@ export interface Game {
   club: { name: string; members: ClubMember[]; warScore: number; warTarget: number };
   offers: TradeOffer[];
   lastOfferAt: number;
-  stats: { collected: number; upgrades: number; disasters: number };
+  stats: { collected: number; upgrades: number; disasters: number; dailies: number };
   pendingLevelUps: LevelUpEvent[];
+  /** unlocked achievement ids */
+  achievements: Record<string, boolean>;
+  dailyStreak: number;
+  lastDailyAt: number;
+  /** 0..n tutorial; >= TUTORIAL.length means done; -1 skipped */
+  tutorialStep: number;
+  /** post-level-100 mastery score */
+  mastery: number;
 }

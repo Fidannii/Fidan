@@ -43,6 +43,27 @@ import {
 import type { LevelUpEvent } from './core/progression';
 import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus, getActiveStore, storeLabel } from './iap/iap';
 import type { IapSku } from './iap/catalog';
+import {
+  ACHIEVEMENTS,
+  TUTORIAL,
+  canClaimDaily,
+  claimDaily,
+  ensureMeta,
+} from './core/meta';
+import {
+  getAudioSettings,
+  setAudioSettings,
+  sfxBuy,
+  sfxClick,
+  sfxCollect,
+  sfxDisaster,
+  sfxError,
+  sfxExpand,
+  sfxLevelUp,
+  sfxPlace,
+  sfxUpgrade,
+  unlockAudio,
+} from './audio/sfx';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
 import { Capacitor } from '@capacitor/core';
@@ -67,6 +88,7 @@ async function initNative() {
 void initNative();
 
 async function haptic(style: 'light' | 'medium' | 'heavy' = 'light') {
+  if (!getAudioSettings().haptics) return;
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
@@ -115,9 +137,10 @@ const modal = document.querySelector<HTMLElement>('#modal-root')!;
 const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 
 let g: Game = load();
+ensureMeta(g);
 const view = new View(canvas);
 view.center(g);
-let tab: 'city' | 'market' | 'club' | 'regions' | 'level' = 'city';
+let tab: 'city' | 'market' | 'club' | 'regions' | 'level' | 'more' = 'city';
 let levelModalOpen = false;
 
 let toastT = 0;
@@ -128,6 +151,54 @@ function say(msg: string) {
   toastT = window.setTimeout(() => {
     toastEl.hidden = true;
   }, 2200);
+}
+
+function advanceTutorial(to?: number) {
+  ensureMeta(g);
+  if (g.tutorialStep < 0 || g.tutorialStep >= TUTORIAL.length) return;
+  g.tutorialStep = to != null ? to : g.tutorialStep + 1;
+  save(g);
+  paintTutorial();
+}
+
+function paintTutorial() {
+  ensureMeta(g);
+  let tip = document.querySelector<HTMLElement>('#tutorial-tip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'tutorial-tip';
+    document.querySelector('#stage-wrap')?.appendChild(tip);
+  }
+  if (g.tutorialStep < 0 || g.tutorialStep >= TUTORIAL.length) {
+    tip.hidden = true;
+    tip.innerHTML = '';
+    return;
+  }
+  const step = TUTORIAL[g.tutorialStep];
+  tip.hidden = false;
+  tip.innerHTML = `
+    <div class="tut-card">
+      <strong>${step.title}</strong>
+      <p>${step.body}</p>
+      <div class="row">
+        <button id="tut-next" class="primary">${g.tutorialStep >= TUTORIAL.length - 1 ? 'Los geht’s' : 'Weiter'}</button>
+        <button id="tut-skip" class="ghost">Überspringen</button>
+      </div>
+      <div class="tut-progress">${g.tutorialStep + 1}/${TUTORIAL.length}</div>
+    </div>`;
+  tip.querySelector('#tut-next')?.addEventListener('click', () => {
+    sfxClick();
+    if (g.tutorialStep >= TUTORIAL.length - 1) {
+      g.tutorialStep = TUTORIAL.length;
+      save(g);
+      paintTutorial();
+    } else advanceTutorial();
+  });
+  tip.querySelector('#tut-skip')?.addEventListener('click', () => {
+    g.tutorialStep = -1;
+    save(g);
+    paintTutorial();
+  });
 }
 
 function paintHud() {
@@ -203,6 +274,7 @@ function tabsHtml() {
     <button data-tab="market" class="${tab === 'market' ? 'active' : ''}"><span>🏪</span> Handel</button>
     <button data-tab="club" class="${tab === 'club' ? 'active' : ''}"><span>👥</span> Club</button>
     <button data-tab="regions" class="${tab === 'regions' ? 'active' : ''}"><span>🗺️</span> Regionen</button>
+    <button data-tab="more" class="${tab === 'more' ? 'active' : ''}"><span>⚙️</span> Mehr</button>
   </div>`;
 }
 
@@ -423,6 +495,51 @@ function paintPanel() {
         })
         .join('')}
     `;
+  } else if (tab === 'more') {
+    ensureMeta(g);
+    const audio = getAudioSettings();
+    const unlockedAch = ACHIEVEMENTS.filter((a) => g.achievements[a.id]);
+    body = `
+      <h2>⚙️ Mehr</h2>
+      <p class="muted">Daily, Erfolge, Einstellungen & Hilfe — v1.4 fertig.</p>
+      <h3>Daily-Bonus</h3>
+      <p class="muted">Serie: ${g.dailyStreak} Tag(e)${g.level >= MAX_LEVEL ? ` · Meisterschaft ${g.mastery}` : ''}</p>
+      <div class="row">
+        <button id="a-daily" class="primary" ${canClaimDaily(g) ? '' : 'disabled'}>
+          ${canClaimDaily(g) ? '🎁 Daily abholen' : '✓ Heute erledigt'}
+        </button>
+      </div>
+      <h3>Erfolge (${unlockedAch.length}/${ACHIEVEMENTS.length})</h3>
+      <div class="ach-grid">
+        ${ACHIEVEMENTS.map((a) => {
+          const ok = !!g.achievements[a.id];
+          return `<div class="ach ${ok ? 'done' : ''}">
+            <span class="ach-icon">${a.icon}</span>
+            <div>
+              <strong>${a.title}</strong>
+              <div class="muted">${a.blurb}${ok ? '' : ` · +${a.rewardCash}¢`}</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <h3>Audio &amp; Feedback</h3>
+      <div class="row">
+        <button id="a-sfx" class="${audio.sfx ? 'active' : ''}">SFX ${audio.sfx ? 'An' : 'Aus'}</button>
+        <button id="a-music" class="${audio.music ? 'active' : ''}">Musik ${audio.music ? 'An' : 'Aus'}</button>
+        <button id="a-haptic" class="${audio.haptics ? 'active' : ''}">Haptik ${audio.haptics ? 'An' : 'Aus'}</button>
+      </div>
+      <h3>Hilfe</h3>
+      <ul class="loop">
+        <li>Bauen → produzieren → einsammeln → XP</li>
+        <li>Häuser upgraden für Steuern & Zufriedenheit</li>
+        <li>Aufstieg: Soft-Credits oder Echtgeld-IAP</li>
+        <li>Nach Level 100: Meisterschaftspunkte</li>
+      </ul>
+      <div class="row">
+        <button id="a-retut">Tutorial neu starten</button>
+        <a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener">Datenschutz</a>
+      </div>
+    `;
   } else if (f?.b) {
     const d = DEFS[f.b.id];
     const p = prog(g, f.x, f.y);
@@ -492,15 +609,48 @@ function paintPanel() {
 function wire() {
   panel.querySelectorAll('[data-tab]').forEach((el) => {
     el.addEventListener('click', () => {
+      sfxClick();
       tab = (el as HTMLElement).dataset.tab as typeof tab;
       paintPanel();
     });
+  });
+  panel.querySelector('#a-daily')?.addEventListener('click', () => {
+    if (claimDaily(g, say)) {
+      sfxBuy();
+      void haptic('medium');
+    } else sfxError();
+    refresh();
+  });
+  panel.querySelector('#a-sfx')?.addEventListener('click', () => {
+    const cur = getAudioSettings();
+    setAudioSettings({ sfx: !cur.sfx });
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-music')?.addEventListener('click', () => {
+    const cur = getAudioSettings();
+    setAudioSettings({ music: !cur.music });
+    unlockAudio();
+    paintPanel();
+  });
+  panel.querySelector('#a-haptic')?.addEventListener('click', () => {
+    const cur = getAudioSettings();
+    setAudioSettings({ haptics: !cur.haptics });
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-retut')?.addEventListener('click', () => {
+    g.tutorialStep = 0;
+    save(g);
+    paintTutorial();
+    say('Tutorial gestartet.');
   });
   panel.querySelector('#a-collect')?.addEventListener('click', () => {
     if (!g.focus) return;
     if (collect(g, g.focus.x, g.focus.y, say)) {
       view.spawnBurst(g.focus.x, g.focus.y, '#ffe566', 16);
       view.floatAt(g.focus.x, g.focus.y, '+Ressourcen', '#ffe566');
+      sfxCollect();
       void haptic('medium');
     }
     refresh();
@@ -508,6 +658,7 @@ function wire() {
   panel.querySelector('#a-speed')?.addEventListener('click', () => {
     if (!g.focus) return;
     speedUp(g, g.focus.x, g.focus.y, say);
+    sfxBuy();
     refresh();
   });
   panel.querySelector('#a-up')?.addEventListener('click', () => {
@@ -515,8 +666,9 @@ function wire() {
     if (upgradeHouse(g, g.focus.x, g.focus.y, say)) {
       view.spawnBurst(g.focus.x, g.focus.y, '#7ad4ff', 18);
       view.floatAt(g.focus.x, g.focus.y, 'Upgrade!', '#7ad4ff');
+      sfxUpgrade();
       void haptic('heavy');
-    }
+    } else sfxError();
     refresh();
   });
   panel.querySelector('#a-svc')?.addEventListener('click', () => {
@@ -530,16 +682,18 @@ function wire() {
     refresh();
   });
   panel.querySelector('#a-expand')?.addEventListener('click', () => {
-    expand(g, say);
+    if (expand(g, say)) sfxExpand();
+    else sfxError();
     refresh();
   });
   panel.querySelectorAll('[data-xp-pack]').forEach((el) => {
     el.addEventListener('click', () => {
       const id = (el as HTMLElement).dataset.xpPack!;
       if (buyXpPack(g, id, say)) {
+        sfxBuy();
         void haptic('medium');
         view.spawnBurst(g.size / 2, g.size / 2, '#f0d56a', 12);
-      }
+      } else sfxError();
       refresh();
     });
   });
@@ -549,6 +703,7 @@ function wire() {
       void (async () => {
         const ok = await purchaseIap(id);
         if (ok) {
+          sfxBuy();
           void haptic('heavy');
           view.spawnBurst(g.size / 2, g.size / 2, '#7ad4ff', 18);
         }
@@ -561,13 +716,14 @@ function wire() {
   });
   panel.querySelector('#a-buy-level')?.addEventListener('click', () => {
     if (buyNextLevel(g, say)) {
+      sfxLevelUp();
       void haptic('heavy');
       view.spawnBurst(g.size / 2, g.size / 2, '#3ecf8e', 20);
-    }
+    } else sfxError();
     refresh();
   });
   panel.querySelector('#a-disaster')?.addEventListener('click', () => {
-    triggerDisaster(g, say);
+    if (triggerDisaster(g, say)) sfxDisaster();
     refresh();
   });
   panel.querySelector('#a-reset')?.addEventListener('click', () => {
@@ -643,8 +799,10 @@ function showLevelUp(ev: LevelUpEvent) {
       ${unlockHtml}
       <div class="row" style="margin-top:1rem"><button id="lvl-ok" class="primary">Weiter</button></div>
     </div>`;
+  sfxLevelUp();
   void haptic('heavy');
   modal.querySelector('#lvl-ok')?.addEventListener('click', () => {
+    sfxClick();
     modal.innerHTML = '';
     levelModalOpen = false;
     flushLevelUps();
@@ -739,11 +897,15 @@ canvas.addEventListener('pointerup', (e) => {
   const c = cell(g, x, y);
   if (!c) return;
 
+  unlockAudio();
   if (c.b && c.b.ready > 0 && !g.selected) {
-    collect(g, x, y, say);
-    view.spawnBurst(x, y, '#ffe566', 16);
-    view.floatAt(x, y, '+Ressourcen', '#ffe566');
-    void haptic('medium');
+    if (collect(g, x, y, say)) {
+      view.spawnBurst(x, y, '#ffe566', 16);
+      view.floatAt(x, y, '+Ressourcen', '#ffe566');
+      sfxCollect();
+      void haptic('medium');
+      if (g.tutorialStep === 2) advanceTutorial(3);
+    }
     g.focus = { x, y };
     tab = 'city';
     refresh();
@@ -754,8 +916,10 @@ canvas.addEventListener('pointerup', (e) => {
     if (ok) {
       view.spawnBurst(x, y, '#3ecf8e', 10);
       view.floatAt(x, y, DEFS[g.selected].icon, '#3ecf8e');
+      sfxPlace();
       void haptic('light');
-    }
+      if (g.tutorialStep === 1) advanceTutorial(2);
+    } else sfxError();
     if (g.selected !== 'road' && g.selected !== 'highway') g.selected = null;
     g.focus = { x, y };
     tab = 'city';
@@ -794,9 +958,9 @@ function frame() {
 if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.innerHTML = `
     <div class="modal intro-modal">
-      <div class="intro-badge">v1.3 · IAP</div>
+      <div class="intro-badge">v1.4 · Fertig</div>
       <h2>Willkommen in MetroBuilder</h2>
-      <p class="muted">Baue deine Metropole — Level bis 100, optional mit Credits oder Echtgeld-IAP.</p>
+      <p class="muted">Baue deine Metropole — Level bis 100, Daily, Erfolge, Audio & optional Echtgeld-IAP.</p>
       <ol class="loop">
         <li>Straßen legen & Produktionsketten starten</li>
         <li>Wohnungen upgraden, Strom & Wasser halten</li>
@@ -808,11 +972,23 @@ if (!localStorage.getItem('metrobuilder-full-intro')) {
   modal.querySelector('#go')?.addEventListener('click', () => {
     localStorage.setItem('metrobuilder-full-intro', '1');
     modal.innerHTML = '';
+    unlockAudio();
+    sfxClick();
     void haptic('medium');
+    paintTutorial();
   });
 }
 
+document.addEventListener(
+  'pointerdown',
+  () => {
+    unlockAudio();
+  },
+  { once: true },
+);
+
 refresh();
+paintTutorial();
 frame();
 setInterval(() => save(g), 4000);
 

@@ -224,11 +224,25 @@ export function buyLevelCost(g: Game): number | null {
  */
 export function gainXp(g: Game, amount: number): LevelUpEvent[] {
   if (amount <= 0) return [];
-  g.xp += amount;
   g.weekScore += amount;
   const me = g.club.members.find((m) => !m.ai);
   if (me) me.score += amount;
 
+  if (g.level >= MAX_LEVEL) {
+    if (g.mastery == null) g.mastery = 0;
+    const prev = g.mastery;
+    g.mastery += amount;
+    g.xp = 0;
+    // Soft rewards every 500 mastery (no toast here — UI can poll mastery)
+    const crossed = Math.floor(g.mastery / 500) - Math.floor(prev / 500);
+    if (crossed > 0) {
+      g.cash += 100 * crossed;
+      g.gems += crossed;
+    }
+    return [];
+  }
+
+  g.xp += amount;
   const events: LevelUpEvent[] = [];
   while (g.level < MAX_LEVEL) {
     const need = xpNeeded(g.level);

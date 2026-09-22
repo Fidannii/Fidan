@@ -1,6 +1,6 @@
 # MetroBuilder
 
-Städtebau-Simulation — **v1.3.0 store-ready** (Capacitor iOS/Android + PWA + IAP).
+Städtebau-Simulation — **v1.4.0 fertig** (Capacitor iOS/Android + PWA + IAP + Meta).
 
 ## Spielen (Web)
 
@@ -27,7 +27,7 @@ Listing-Texte: `store/APP_STORE_LISTING_DE.md`
 Screenshots: `store/screenshots/`  
 Privacy (GitHub Pages): `docs/privacy.html`
 
-Bundle ID: `com.fidani.metrobuilder` · Version **1.3.0** (Level 1–100 · Echtgeld-IAP)
+Bundle ID: `com.fidani.metrobuilder` · Version **1.4.0**  
+Features: Level 1–100 · Daily · Erfolge · Tutorial · Audio · Meisterschaft · Soft-Credits + Echtgeld-IAP
 
 IAP-Setup: **[store/IAP_SETUP.md](./store/IAP_SETUP.md)**
-

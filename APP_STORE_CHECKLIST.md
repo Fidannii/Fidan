@@ -1,4 +1,4 @@
-# App Store / Play Store — Checkliste (1.3.1)
+# App Store / Play Store — Checkliste (1.4.0)
 
 ## Vor dem Upload
 - [ ] Apple Developer Account aktiv

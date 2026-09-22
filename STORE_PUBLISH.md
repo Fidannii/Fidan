@@ -7,7 +7,7 @@ Alles Nötige ist vorbereitet — auf dem Mac nur noch signieren & hochladen.
 
 | Asset | Status |
 |-------|--------|
-| Capacitor iOS/Android (`com.fidani.metrobuilder` 1.3.0) | ✅ |
+| Capacitor iOS/Android (`com.fidani.metrobuilder` 1.4.0) | ✅ |
 | App-Icon 1024 (ohne Alpha) + Splash | ✅ |
 | Privacy Manifest (`PrivacyInfo.xcprivacy`) | ✅ |
 | Export Compliance (`ITSAppUsesNonExemptEncryption=NO`) | ✅ |

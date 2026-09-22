@@ -1,4 +1,4 @@
-# App Store Connect Listing — MetroBuilder 1.3.0
+# App Store Connect Listing — MetroBuilder 1.4.0
 
 Copy-paste ready. Bundle ID: `com.fidani.metrobuilder`
 
@@ -26,8 +26,8 @@ Kernfortschritt ist ohne Zahlung erreichbar. Credits sind Soft Currency. Echtgel
 ## Keywords (≤100 chars, comma-separated)
 Städtebau,Simulation,Stadt,Bauen,Strategie,Idle,Wirtschaft,Metropole
 
-## What's New (1.3.0)
-Echtgeld-In-App-Käufe: XP-Pakete und Sofort-Level über den App Store. Parallel Soft-Credits. Level 1–100 mit steigender Schwierigkeit.
+## What's New (1.4.0)
+Audio, Tutorial, Daily-Boni, Erfolge & Meisterschaft nach Level 100. Soft-Credits + Echtgeld-IAP. Level 1–100 mit steigender Schwierigkeit.
 
 ## Category
 Primary: Games → Simulation

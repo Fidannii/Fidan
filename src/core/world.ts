@@ -140,8 +140,13 @@ export function createGame(region: RegionId = 'valley'): Game {
     },
     offers: [],
     lastOfferAt: 0,
-    stats: { collected: 0, upgrades: 0, disasters: 0 },
+    stats: { collected: 0, upgrades: 0, disasters: 0, dailies: 0 },
     pendingLevelUps: [],
+    achievements: {},
+    dailyStreak: 0,
+    lastDailyAt: 0,
+    tutorialStep: 0,
+    mastery: 0,
   };
 }
 

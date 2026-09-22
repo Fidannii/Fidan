@@ -25,6 +25,7 @@ import {
 import { TRADER_IDS, avatarMeta } from '../ui/avatars';
 import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL, xpNeeded } from './progression';
 import { iapDef, type IapSku } from '../iap/catalog';
+import { checkAchievements } from './meta';
 
 export type Say = (msg: string) => void;
 
@@ -74,6 +75,7 @@ export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boo
   if (id === 'police' || id === 'fire') quest(g, 'services');
   g.club.warScore += 1;
   say(`${d.name} (−${price})`);
+  checkAchievements(g, say);
   return true;
 }
 
@@ -153,6 +155,7 @@ export function collect(g: Game, x: number, y: number, say: Say): boolean {
   }
   xp(g, 8);
   g.club.warScore += 1;
+  checkAchievements(g, say);
   return true;
 }
 
@@ -192,6 +195,7 @@ export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
   quest(g, 'upgrade');
   xp(g, 28 + next.level * 4);
   say(`→ ${next.name}`);
+  checkAchievements(g, say);
   return true;
 }
 
@@ -584,6 +588,13 @@ export function load(): Game {
       avatar: o.avatar || 'alex',
     }));
     if (!g.pendingLevelUps) g.pendingLevelUps = [];
+    if (!g.achievements) g.achievements = {};
+    if (g.dailyStreak == null) g.dailyStreak = 0;
+    if (g.lastDailyAt == null) g.lastDailyAt = 0;
+    if (g.tutorialStep == null) g.tutorialStep = 0;
+    if (g.mastery == null) g.mastery = 0;
+    if (!g.stats) g.stats = { collected: 0, upgrades: 0, disasters: 0, dailies: 0 };
+    if (g.stats.dailies == null) g.stats.dailies = 0;
     return g;
   } catch {
     return createGame();
