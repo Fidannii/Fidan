@@ -255,7 +255,9 @@ function wire() {
   });
   panel.querySelector('#a-collect')?.addEventListener('click', () => {
     if (!g.focus) return;
-    collect(g, g.focus.x, g.focus.y, say);
+    if (collect(g, g.focus.x, g.focus.y, say)) {
+      view.spawnBurst(g.focus.x, g.focus.y, '#ffe566', 14);
+    }
     refresh();
   });
   panel.querySelector('#a-speed')?.addEventListener('click', () => {
@@ -377,7 +379,7 @@ canvas.addEventListener('pointerdown', (e) => {
 canvas.addEventListener('pointermove', (e) => {
   const p = pos(e);
   const w = view.toWorld(p.x, p.y);
-  view.hover = { x: Math.floor(w.x), y: Math.floor(w.y) };
+  view.hover = { x: Math.round(w.x), y: Math.round(w.y) };
   if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pts.size === 2) {
     const [a, b] = [...pts.values()];
@@ -404,20 +406,22 @@ canvas.addEventListener('pointerup', (e) => {
   if (moved) return;
   const p = pos(e);
   const w = view.toWorld(p.x, p.y);
-  const x = Math.floor(w.x);
-  const y = Math.floor(w.y);
+  const x = Math.round(w.x);
+  const y = Math.round(w.y);
   const c = cell(g, x, y);
   if (!c) return;
 
   if (c.b && c.b.ready > 0 && !g.selected) {
     collect(g, x, y, say);
+    view.spawnBurst(x, y, '#ffe566', 14);
     g.focus = { x, y };
     tab = 'city';
     refresh();
     return;
   }
   if (g.selected) {
-    place(g, x, y, g.selected, say);
+    const ok = place(g, x, y, g.selected, say);
+    if (ok) view.spawnBurst(x, y, '#3ecf8e', 8);
     if (g.selected !== 'road' && g.selected !== 'highway') g.selected = null;
     g.focus = { x, y };
     tab = 'city';
