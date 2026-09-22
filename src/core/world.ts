@@ -1,7 +1,7 @@
-import { DEFS, HOUSE, SIZE, START_R, TAX_MS } from './catalog';
-import type { BuildId, Cell, Game, Res } from './types';
+import { DEFS, HOUSE, REGIONS, SIZE, START_R, TAX_MS, WEEK_MS, emptyInv } from './catalog';
+import type { BuildId, Cell, Game, RegionId, Res } from './types';
 
-export function idx(x: number, y: number, size = SIZE): number {
+export function idx(x: number, y: number, size = SIZE) {
   return y * size + x;
 }
 
@@ -19,45 +19,70 @@ export function neigh(x: number, y: number): Array<[number, number]> {
   ];
 }
 
-export function roadNext(g: Game, x: number, y: number): boolean {
-  return neigh(x, y).some(([nx, ny]) => cell(g, nx, ny)?.b?.id === 'road');
+export function isRoad(id: BuildId | undefined): boolean {
+  return id === 'road' || id === 'highway';
 }
 
-export function dist(ax: number, ay: number, bx: number, by: number): number {
+export function roadNext(g: Game, x: number, y: number): boolean {
+  return neigh(x, y).some(([nx, ny]) => isRoad(cell(g, nx, ny)?.b?.id));
+}
+
+export function dist(ax: number, ay: number, bx: number, by: number) {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }
 
-export function covered(g: Game, x: number, y: number, kind: BuildId): boolean {
-  const r = DEFS[kind].radius ?? 0;
+export function covered(g: Game, x: number, y: number, kinds: BuildId[]): boolean {
   for (const c of g.cells) {
-    if (c.b?.id === kind && dist(c.x, c.y, x, y) <= r) return true;
+    if (!c.b || !kinds.includes(c.b.id)) continue;
+    const r = (DEFS[c.b.id].radius ?? 0) + (c.b.level - 1);
+    if (dist(c.x, c.y, x, y) <= r) return true;
   }
   return false;
 }
 
-export function createGame(): Game {
+export function hasLandmark(g: Game) {
+  return g.cells.some((c) => c.b?.id === 'landmark');
+}
+
+export function hasDepot(g: Game) {
+  return g.cells.some((c) => c.b?.id === 'depot');
+}
+
+export function hasStation(g: Game) {
+  return g.cells.some((c) => c.b?.id === 'station' || c.b?.id === 'airport');
+}
+
+function baseTerrain(region: RegionId): Cell['terrain'] {
+  return REGIONS[region].terrain;
+}
+
+export function createGame(region: RegionId = 'valley'): Game {
   const size = SIZE;
   const cx = Math.floor(size / 2);
   const cy = Math.floor(size / 2);
   const cells: Cell[] = [];
+  const base = baseTerrain(region);
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const d = dist(x, y, cx, cy);
-      let terrain: Cell['terrain'] = d <= START_R ? 'grass' : 'void';
-      if (terrain === 'grass' && x === cx - 4 && y >= cy - 1 && y <= cy + 1) {
+      let terrain: Cell['terrain'] = d <= START_R ? base : 'void';
+      if (terrain !== 'void' && region === 'coast' && x <= cx - 4 && d <= START_R) {
+        terrain = 'water';
+      }
+      if (terrain !== 'void' && region === 'valley' && x === cx - 4 && y >= cy - 1 && y <= cy + 1) {
         terrain = 'water';
       }
       cells.push({ x, y, terrain, b: null });
     }
   }
 
-  const put = (x: number, y: number, id: BuildId, level = 1) => {
+  const put = (x: number, y: number, id: BuildId) => {
     const c = cells[idx(x, y, size)];
-    c.terrain = 'grass';
+    c.terrain = base;
     c.b = {
       id,
-      level,
+      level: 1,
       jobAt: DEFS[id].produce ? Date.now() : null,
       ready: 0,
       wear: 0,
@@ -74,9 +99,11 @@ export function createGame(): Game {
   put(cx + 2, cy - 1, 'park');
 
   return {
-    cash: 320,
-    gems: 3,
-    inv: { wood: 2, planks: 0 },
+    cash: 400,
+    gems: 5,
+    keys: { bronze: 0, silver: 0, gold: 0 },
+    tokens: 0,
+    inv: { ...emptyInv(), wood: 2 },
     cells,
     size,
     unlock: START_R,
@@ -86,45 +113,85 @@ export function createGame(): Game {
     selected: null,
     focus: null,
     quests: [
-      { id: 'roads', title: 'Baue 5 Straßen', cur: 0, max: 5, done: false, rewardCash: 50 },
-      { id: 'wood', title: 'Sammle 8 Holz', cur: 0, max: 8, done: false, rewardCash: 60 },
-      { id: 'planks', title: 'Stelle 3 Bretter her', cur: 0, max: 3, done: false, rewardCash: 80 },
-      { id: 'upgrade', title: 'Upgrade 1 Haus', cur: 0, max: 1, done: false, rewardCash: 120 },
+      { id: 'roads', title: 'Baue 5 Straßen', cur: 0, max: 5, done: false, rewardCash: 60, rewardGems: 1 },
+      { id: 'wood', title: 'Sammle 10 Holz', cur: 0, max: 10, done: false, rewardCash: 70, rewardToken: 1 },
+      { id: 'planks', title: 'Stelle 4 Bretter her', cur: 0, max: 4, done: false, rewardCash: 90, rewardKey: 'bronze' },
+      { id: 'upgrade', title: 'Upgrade 1 Haus', cur: 0, max: 1, done: false, rewardCash: 140, rewardGems: 2 },
+      { id: 'expand', title: 'Erweitere die Stadt', cur: 0, max: 1, done: false, rewardCash: 200, rewardKey: 'silver' },
+      { id: 'services', title: 'Baue Polizei o. Feuerwehr', cur: 0, max: 1, done: false, rewardCash: 120 },
     ],
     built: 8,
+    region,
+    unlockedRegions: ['valley'],
+    disasterUntil: null,
+    weekScore: 0,
+    weekEnds: Date.now() + WEEK_MS,
+    mayorRank: 12,
+    club: {
+      name: 'Metro Club',
+      members: [
+        { name: 'Du', score: 0, ai: false },
+        { name: 'Lina', score: 40, ai: true },
+        { name: 'Omar', score: 55, ai: true },
+        { name: 'Mira', score: 30, ai: true },
+      ],
+      warScore: 0,
+      warTarget: 100,
+    },
+    offers: [],
+    lastOfferAt: 0,
+    stats: { collected: 0, upgrades: 0, disasters: 0 },
   };
 }
 
 export function houseSat(g: Game, x: number, y: number): number {
   const c = cell(g, x, y);
   if (c?.b?.id !== 'house') return 0;
-  let s = 50;
+  let s = 48;
   if (!roadNext(g, x, y)) s -= 35;
-  if (covered(g, x, y, 'power')) s += 15; else s -= 20;
-  if (covered(g, x, y, 'water')) s += 15; else s -= 20;
-  if (covered(g, x, y, 'park')) s += 12;
-  // wear on house from under-supply already reflected; also neighbor industry clutter:
+  if (covered(g, x, y, ['power', 'solar'])) s += 12; else s -= 22;
+  if (covered(g, x, y, ['water'])) s += 12; else s -= 22;
+  if (covered(g, x, y, ['sewage'])) s += 7; else s -= 5;
+  if (covered(g, x, y, ['waste'])) s += 7; else s -= 5;
+  if (covered(g, x, y, ['police'])) s += 6; else s -= 3;
+  if (covered(g, x, y, ['fire'])) s += 6; else s -= 3;
+  if (covered(g, x, y, ['hospital'])) s += 8;
+  if (covered(g, x, y, ['park'])) s += 10;
+  if (covered(g, x, y, ['school', 'uni'])) s += 6;
+  if (covered(g, x, y, ['cinema', 'stadium'])) s += 8;
+  if (g.disasterUntil && Date.now() < g.disasterUntil) s -= 28;
+  if (g.region === 'snow') s -= 4;
+  if (g.region === 'desert' && !covered(g, x, y, ['water'])) s -= 6;
   return Math.max(0, Math.min(100, s));
 }
 
 export function city(g: Game) {
   let pop = 0;
   let houses = 0;
-  let sat = 0;
+  let satSum = 0;
   let tax = 0;
+  const landmark = hasLandmark(g);
+
   for (const c of g.cells) {
     if (c.b?.id !== 'house') continue;
     houses++;
     const tier = HOUSE[Math.min(c.b.level, HOUSE.length) - 1];
-    const hs = houseSat(g, c.x, c.y);
-    sat += hs;
+    let hs = houseSat(g, c.x, c.y);
+    if (landmark) hs = Math.min(100, hs + 8);
+    satSum += hs;
     pop += tier.pop;
-    tax += Math.floor(tier.tax * (hs / 100));
+    let mult = hs / 100;
+    if (covered(g, c.x, c.y, ['school'])) mult *= 1.12;
+    if (covered(g, c.x, c.y, ['uni'])) mult *= 1.2;
+    if (covered(g, c.x, c.y, ['stadium', 'cinema'])) mult *= 1.08;
+    if (g.region === 'snow') mult *= 1.05;
+    tax += Math.floor(tier.tax * mult);
   }
+
   return {
     pop,
     houses,
-    sat: houses ? Math.round(sat / houses) : 0,
+    sat: houses ? Math.round(satSum / houses) : 0,
     tax,
     taxMs: TAX_MS,
   };
@@ -132,7 +199,10 @@ export function city(g: Game) {
 
 export function xp(g: Game, n: number) {
   g.xp += n;
-  const need = g.level * 80;
+  g.weekScore += n;
+  const me = g.club.members.find((m) => !m.ai);
+  if (me) me.score += n;
+  const need = g.level * 90;
   if (g.xp >= need) {
     g.xp -= need;
     g.level += 1;
@@ -146,10 +216,13 @@ export function quest(g: Game, id: string, by = 1) {
   if (q.cur >= q.max) {
     q.done = true;
     g.cash += q.rewardCash;
+    if (q.rewardGems) g.gems += q.rewardGems;
+    if (q.rewardKey) g.keys[q.rewardKey] += 1;
+    if (q.rewardToken) g.tokens += q.rewardToken;
   }
 }
 
-export function hasIn(g: Game, needs?: Partial<Record<Res, number>>): boolean {
+export function hasIn(g: Game, needs?: Partial<Record<Res, number>>) {
   if (!needs) return true;
   return Object.entries(needs).every(([r, n]) => g.inv[r as Res] >= (n ?? 0));
 }

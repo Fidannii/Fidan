@@ -1,15 +1,6 @@
 # MetroBuilder
 
-Städtebau-Simulation — **von der Kernschleife aufgebaut**.
-
-## Kernschleife
-
-1. Straßen bauen  
-2. Holz produzieren  
-3. Bretter verarbeiten  
-4. Häuser upgraden  
-5. Strom/Wasser halten → Zufriedenheit → Steuern  
-6. Stadt erweitern  
+Städtebau-Simulation nach dem GDD — **voller lokaler Prototyp**.
 
 ## Spielen
 
@@ -18,14 +9,22 @@ npm install
 npm run dev
 ```
 
-PWA: im Browser „Zum Home-Bildschirm“ — iOS & Android.
+## Enthalten
 
-## Architektur
+- Kernschleife + volle Produktionsketten (Holz/Metall/Chemie/Kunststoff/Glas → Waren)
+- Straßen & Schnellstraße, Energie (fossil/Solar), Wasser, Abwasser, Müll
+- Polizei, Feuerwehr, Krankenhaus (Radien + Ausbau)
+- Parks, Schule, Uni, Kino, Stadion, Bahnhof, Flughafen, Depot, Wahrzeichen
+- Wohnstufen bis Turm, Zufriedenheit → Steuern
+- Credits / Gems / Schlüssel / Erweiterungs-Token
+- Globaler Markt + Handelsdepot-Angebote
+- Regionen: Tal, Wüste, Küste, Schnee
+- Club-Krieg & Bürgermeister-Wettbewerb (lokal simuliert)
+- Optionale Katastrophen mit Belohnungen
+- PWA (iOS/Android Home Screen)
 
-```
-src/core/     Typen, Katalog, Welt, Simulation (Tick)
-src/render/   Canvas-View
-src/main.ts   UI + Input
-```
+## Noch nicht (echtes Online)
 
-Gebäude im Kern: Straße, Wohnhaus, Holzfäller, Sägewerk, Kraftwerk, Wasserturm, Park.
+- Server-autoritativer Multiplayer
+- Echte Spieler-Clubs / Matchmaking
+- Native Store-Builds (Unity/Capacitor)
