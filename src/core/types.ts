@@ -1,3 +1,5 @@
+import type { LevelUpEvent } from './progression';
+
 /** MetroBuilder — full GDD types */
 
 export type Res =
@@ -149,4 +151,5 @@ export interface Game {
   offers: TradeOffer[];
   lastOfferAt: number;
   stats: { collected: number; upgrades: number; disasters: number };
+  pendingLevelUps: LevelUpEvent[];
 }

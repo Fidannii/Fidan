@@ -27,6 +27,8 @@ import {
   upgradeHouse,
   upgradeService,
 } from './core/sim';
+import { MAX_LEVEL, nextUnlocks, xpProgress } from './core/progression';
+import type { LevelUpEvent } from './core/progression';
 import { View } from './render/view';
 import { avatarCard, avatarUrl } from './ui/avatars';
 
@@ -40,7 +42,8 @@ const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 let g: Game = load();
 const view = new View(canvas);
 view.center(g);
-let tab: 'city' | 'market' | 'club' | 'regions' = 'city';
+let tab: 'city' | 'market' | 'club' | 'regions' | 'level' = 'city';
+let levelModalOpen = false;
 
 let toastT = 0;
 function say(msg: string) {
@@ -56,10 +59,17 @@ function paintHud() {
   const s = city(g);
   const left = Math.max(0, g.weekEnds - Date.now());
   const m = Math.floor(left / 60000);
+  const xp = xpProgress(g);
   hud.innerHTML = `
     <div class="hud-player">
       <img class="hud-avatar" src="${avatarUrl('player')}" alt="Du" width="64" height="64" />
-      <div class="brand">MetroBuilder</div>
+      <div>
+        <div class="brand">MetroBuilder</div>
+        <div class="xp-wrap" title="${xp.cur}/${xp.need} XP">
+          <div class="xp-label">Lv ${g.level}${g.level >= MAX_LEVEL ? ' MAX' : ''}</div>
+          <div class="xp-bar"><i style="width:${xp.pct}%"></i></div>
+        </div>
+      </div>
     </div>
     <div class="stat">${REGIONS[g.region].icon} ${REGIONS[g.region].name}</div>
     <div class="stat">💰 ${g.cash} <span>Credits</span></div>
@@ -69,7 +79,7 @@ function paintHud() {
     <div class="stat">👥 ${s.pop}</div>
     <div class="stat">😊 ${s.sat}%</div>
     <div class="stat">📈 ${s.tax}<span>/18s</span></div>
-    <div class="stat">⭐ Lv ${g.level}</div>
+    <div class="stat">⭐ ${xp.cur}/${xp.need} <span>XP</span></div>
     <div class="stat">🏆 #${g.mayorRank} <span>${m}m</span></div>
   `;
 }
@@ -111,6 +121,7 @@ function questHtml() {
 function tabsHtml() {
   return `<div class="row">
     <button data-tab="city" class="${tab === 'city' ? 'active' : ''}">Stadt</button>
+    <button data-tab="level" class="${tab === 'level' ? 'active' : ''}">Aufstieg</button>
     <button data-tab="market" class="${tab === 'market' ? 'active' : ''}">Handel</button>
     <button data-tab="club" class="${tab === 'club' ? 'active' : ''}">Club</button>
     <button data-tab="regions" class="${tab === 'regions' ? 'active' : ''}">Regionen</button>
@@ -122,7 +133,48 @@ function paintPanel() {
   const s = city(g);
 
   let body = '';
-  if (tab === 'market') {
+  if (tab === 'level') {
+    const xp = xpProgress(g);
+    const upcoming = nextUnlocks(g, 6);
+    const unlocked = BUILD_ORDER.filter((id) => DEFS[id].unlockLv <= g.level);
+    body = `
+      <h2>⭐ Level-Aufstieg</h2>
+      <p class="muted">Baue, produziere und upgrade — sammle XP bis Level ${MAX_LEVEL}.</p>
+      <div class="level-card">
+        <div class="level-badge">Lv ${g.level}</div>
+        <div class="level-xp">
+          <strong>${xp.cur} / ${xp.need} XP</strong>
+          <div class="xp-bar lg"><i style="width:${xp.pct}%"></i></div>
+          <p class="muted">${g.level >= MAX_LEVEL ? 'Maximallevel erreicht!' : `${xp.need - xp.cur} XP bis Level ${g.level + 1}`}</p>
+        </div>
+      </div>
+      <h3>XP verdienen</h3>
+      <ul class="loop">
+        <li>Gebäude bauen · +10 XP</li>
+        <li>Ressourcen sammeln · +8 XP</li>
+        <li>Haus-Upgrade · +28 XP</li>
+        <li>Service-Ausbau · +16 XP</li>
+        <li>Stadt erweitern · +35 XP</li>
+      </ul>
+      <h3>Nächste Freischaltungen</h3>
+      ${
+        upcoming.length
+          ? upcoming
+              .map(
+                (u) => `<div class="quest">
+                  <strong>Level ${u.level}</strong>
+                  <div class="muted">${u.ids.map((id) => `${DEFS[id].icon} ${DEFS[id].name}`).join(' · ')}</div>
+                </div>`,
+              )
+              .join('')
+          : '<p class="muted">Alle Gebäude freigeschaltet.</p>'
+      }
+      <h3>Freigeschaltet (${unlocked.length})</h3>
+      <div class="unlock-chips">
+        ${unlocked.map((id) => `<span class="chip">${DEFS[id].icon} ${DEFS[id].name}</span>`).join('')}
+      </div>
+    `;
+  } else if (tab === 'market') {
     body = `
       <h2>🏪 Handel</h2>
       <p class="muted">Marktplatz & Spieler-Angebote (Depot = mehr Offers).</p>
@@ -358,11 +410,53 @@ function wire() {
   });
 }
 
+function showLevelUp(ev: LevelUpEvent) {
+  levelModalOpen = true;
+  const unlockHtml = ev.unlocks.length
+    ? `<h3>Neu freigeschaltet</h3>
+       <div class="unlock-chips">
+         ${ev.unlocks.map((id) => `<span class="chip glow">${DEFS[id].icon} ${DEFS[id].name}</span>`).join('')}
+       </div>`
+    : `<p class="muted">Keine neuen Gebäude — trotzdem starke Belohnungen.</p>`;
+  const r = ev.reward;
+  modal.innerHTML = `
+    <div class="modal level-up-modal">
+      <div class="level-up-burst">LEVEL UP</div>
+      <h2>Level ${ev.level} erreicht!</h2>
+      <p class="muted">Dein Aufstieg als Bürgermeister.</p>
+      <div class="reward-grid">
+        <div class="reward">💰 +${r.cash}</div>
+        <div class="reward">💎 +${r.gems}</div>
+        ${r.tokens ? `<div class="reward">🎫 +${r.tokens}</div>` : ''}
+        ${r.bronze ? `<div class="reward">🥉 +${r.bronze}</div>` : ''}
+        ${r.silver ? `<div class="reward">🥈 +${r.silver}</div>` : ''}
+        ${r.gold ? `<div class="reward">🥇 +${r.gold}</div>` : ''}
+      </div>
+      ${unlockHtml}
+      <div class="row" style="margin-top:1rem"><button id="lvl-ok" class="primary">Weiter</button></div>
+    </div>`;
+  modal.querySelector('#lvl-ok')?.addEventListener('click', () => {
+    modal.innerHTML = '';
+    levelModalOpen = false;
+    flushLevelUps();
+  });
+}
+
+function flushLevelUps() {
+  if (levelModalOpen) return;
+  if (!g.pendingLevelUps.length) return;
+  const next = g.pendingLevelUps.shift()!;
+  save(g);
+  showLevelUp(next);
+  refresh();
+}
+
 function refresh() {
   paintHud();
   paintBar();
   paintPanel();
   save(g);
+  flushLevelUps();
 }
 
 bar.addEventListener('click', (e) => {

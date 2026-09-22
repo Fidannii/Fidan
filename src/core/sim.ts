@@ -65,7 +65,7 @@ export function place(g: Game, x: number, y: number, id: BuildId, say: Say): boo
     wear: 0,
   };
   g.built += 1;
-  xp(g, 6);
+  xp(g, 10);
   if (id === 'road' || id === 'highway') quest(g, 'roads');
   if (id === 'police' || id === 'fire') quest(g, 'services');
   g.club.warScore += 1;
@@ -141,7 +141,7 @@ export function collect(g: Game, x: number, y: number, say: Say): boolean {
   } else {
     b.jobAt = d.produce.in ? null : Date.now();
   }
-  xp(g, 4);
+  xp(g, 8);
   g.club.warScore += 1;
   return true;
 }
@@ -174,7 +174,7 @@ export function upgradeHouse(g: Game, x: number, y: number, say: Say): boolean {
   c.b.level = next.level;
   g.stats.upgrades += 1;
   quest(g, 'upgrade');
-  xp(g, 22);
+  xp(g, 28);
   say(`→ ${next.name}`);
   return true;
 }
@@ -199,7 +199,7 @@ export function upgradeService(g: Game, x: number, y: number, say: Say): boolean
   g.cash -= cost;
   c.b.level += 1;
   say(`${d.name} Ausbau L${c.b.level} (−${cost})`);
-  xp(g, 12);
+  xp(g, 16);
   return true;
 }
 
@@ -237,7 +237,7 @@ export function expand(g: Game, say: Say): boolean {
     }
   }
   quest(g, 'expand');
-  xp(g, 30);
+  xp(g, 35);
   say(`+${n} Felder`);
   return true;
 }
@@ -436,6 +436,7 @@ export function switchRegion(g: Game, id: RegionId, say: Say): Game | null {
   next.weekEnds = g.weekEnds;
   next.mayorRank = g.mayorRank;
   next.stats = g.stats;
+  next.pendingLevelUps = g.pendingLevelUps;
   say(`Region: ${REGIONS[id].name}`);
   return next;
 }
@@ -487,6 +488,7 @@ export function load(): Game {
       ...o,
       avatar: o.avatar || 'alex',
     }));
+    if (!g.pendingLevelUps) g.pendingLevelUps = [];
     return g;
   } catch {
     return createGame();

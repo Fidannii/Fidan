@@ -141,6 +141,7 @@ export function createGame(region: RegionId = 'valley'): Game {
     offers: [],
     lastOfferAt: 0,
     stats: { collected: 0, upgrades: 0, disasters: 0 },
+    pendingLevelUps: [],
   };
 }
 
@@ -197,16 +198,12 @@ export function city(g: Game) {
   };
 }
 
+import { gainXp } from './progression';
+
 export function xp(g: Game, n: number) {
-  g.xp += n;
-  g.weekScore += n;
-  const me = g.club.members.find((m) => !m.ai);
-  if (me) me.score += n;
-  const need = g.level * 90;
-  if (g.xp >= need) {
-    g.xp -= need;
-    g.level += 1;
-  }
+  const events = gainXp(g, n);
+  if (events.length) g.pendingLevelUps.push(...events);
+  return events;
 }
 
 export function quest(g: Game, id: string, by = 1) {
@@ -219,6 +216,7 @@ export function quest(g: Game, id: string, by = 1) {
     if (q.rewardGems) g.gems += q.rewardGems;
     if (q.rewardKey) g.keys[q.rewardKey] += 1;
     if (q.rewardToken) g.tokens += q.rewardToken;
+    xp(g, 20);
   }
 }
 
