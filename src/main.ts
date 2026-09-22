@@ -29,8 +29,20 @@ import {
   upgradeHouse,
   upgradeService,
   cityStats,
+  tradeToRegion,
 } from './core/sim';
 import { landValueAt } from './core/systems';
+import { computeTraffic } from './core/traffic';
+import {
+  SPECS,
+  cityTierOf,
+  ensureProgression,
+  setSpecialization,
+  strategicGoals,
+  type SpecId,
+} from './core/cityProgress';
+import { resolveEvent, ensureEvents, eventHint } from './core/events';
+import { ensureCities } from './core/cities';
 import {
   MAX_LEVEL,
   buyLevelCost,
@@ -140,6 +152,9 @@ const canvas = document.querySelector<HTMLCanvasElement>('#stage')!;
 const loaded = loadWithMeta();
 let g: Game = loaded.game;
 ensureMeta(g);
+ensureProgression(g);
+ensureEvents(g);
+ensureCities(g);
 const view = new View(canvas);
 view.center(g);
 let tab: 'city' | 'market' | 'club' | 'regions' | 'level' | 'more' = 'city';
@@ -483,15 +498,18 @@ function paintPanel() {
       <div class="row"><button id="a-disaster">🌪️ Katastrophe starten</button></div>
     `;
   } else if (tab === 'regions') {
+    ensureCities(g);
+    const others = g.unlockedRegions.filter((id) => id !== g.region);
     body = `
-      <h2>🗺️ Regionen</h2>
-      <p class="muted">Nebenkarten mit eigenen Boni. Fortschritt (Cash/Inventar/Level) bleibt erhalten.</p>
+      <h2>🗺️ Regionen & Städte</h2>
+      <p class="muted">Jede Region speichert ihre eigene Stadt. Shared: Credits, Level, Erfolge.</p>
       ${Object.entries(REGIONS)
         .map(([id, r]) => {
           const unlocked = g.unlockedRegions.includes(id as RegionId);
           const here = g.region === id;
-          return `<div class="quest ${here ? '' : ''}">
-            <strong>${r.icon} ${r.name}${here ? ' · hier' : ''}</strong>
+          const saved = !!g.cities?.[id as RegionId];
+          return `<div class="quest">
+            <strong>${r.icon} ${r.name}${here ? ' · hier' : ''}${saved && !here ? ' · gespeichert' : ''}</strong>
             <div class="muted">${r.blurb}</div>
             <div class="row">
               ${
@@ -503,6 +521,16 @@ function paintPanel() {
           </div>`;
         })
         .join('')}
+      <h3>Regionalhandel</h3>
+      <p class="muted">1× Holz in eine andere Stadt schicken (Transportgebühr).</p>
+      <div class="row">
+        ${others
+          .map(
+            (id) =>
+              `<button data-trade="${id}" class="primary" ${g.inv.wood < 1 ? 'disabled' : ''}>🪵→ ${REGIONS[id].name}</button>`,
+          )
+          .join('') || '<span class="muted">Weitere Regionen freischalten.</span>'}
+      </div>
     `;
   } else if (tab === 'more') {
     ensureMeta(g);
@@ -510,7 +538,7 @@ function paintPanel() {
     const unlockedAch = ACHIEVEMENTS.filter((a) => g.achievements[a.id]);
     body = `
       <h2>⚙️ Mehr</h2>
-      <p class="muted">Daily, Erfolge, Einstellungen & Hilfe — v1.4 fertig.</p>
+      <p class="muted">MetroBuilder 2.0 — Daily, Erfolge, Cloud-Stub & Hilfe.</p>
       <h3>Daily-Bonus</h3>
       <p class="muted">Serie: ${g.dailyStreak} Tag(e)${g.level >= MAX_LEVEL ? ` · Meisterschaft ${g.mastery}` : ''}</p>
       <div class="row">
@@ -531,6 +559,10 @@ function paintPanel() {
           </div>`;
         }).join('')}
       </div>
+      <h3>Cloud-Save (optional Stub)</h3>
+      <p class="muted">Vorbereitung für Apple/Google Cloud — lokal bleibt führend.</p>
+      <div class="row"><button id="a-cloud">☁️ Sync markieren</button></div>
+      <p class="muted">${g.cloudSyncAt ? `Letzter Sync: ${new Date(g.cloudSyncAt).toLocaleString('de')}` : 'Noch nie synchronisiert.'}</p>
       <h3>Audio &amp; Feedback</h3>
       <div class="row">
         <button id="a-sfx" class="${audio.sfx ? 'active' : ''}">SFX ${audio.sfx ? 'An' : 'Aus'}</button>
@@ -539,10 +571,10 @@ function paintPanel() {
       </div>
       <h3>Hilfe</h3>
       <ul class="loop">
-        <li>Bauen → produzieren → einsammeln → XP</li>
-        <li>Häuser upgraden für Steuern & Zufriedenheit</li>
-        <li>Aufstieg: Soft-Credits oder Echtgeld-IAP</li>
-        <li>Nach Level 100: Meisterschaftspunkte</li>
+        <li>Cashflow = Steuern + Gewerbe − Unterhalt</li>
+        <li>Kapazität der Dienste zählt, nicht nur Radius</li>
+        <li>Spezialisierung & Stadtstatus für Langzeitziele</li>
+        <li>Jede Region = eigene gespeicherte Stadt</li>
       </ul>
       <div class="row">
         <button id="a-retut">Tutorial neu starten</button>
@@ -638,11 +670,38 @@ function paintPanel() {
       <div class="svc-list">${svcHtml || '<p class="muted">Keine Dienste gebaut.</p>'}</div>
       <div class="row">
         <button id="a-expand" class="primary">🔓 Erweitern (${g.tokens}🎫)</button>
-        <button id="a-overlay-land" class="${view.overlay === 'land' ? 'active' : ''}">🗺 Grundstückswert</button>
+        <button id="a-overlay-land" class="${view.overlay === 'land' ? 'active' : ''}">🗺 Wert</button>
+        <button id="a-overlay-traffic" class="${view.overlay === 'traffic' ? 'active' : ''}">🚗 Stau</button>
+        <button id="a-overlay-power" class="${view.overlay === 'power' ? 'active' : ''}">⚡ Strom</button>
+        <button id="a-overlay-health" class="${view.overlay === 'health' ? 'active' : ''}">✚ Klinik</button>
         <button id="a-disaster">🌪️ Katastrophe</button>
         <button id="a-reset" class="danger">Reset</button>
         <a class="privacy-link" href="./privacy.html" target="_blank" rel="noopener">Datenschutz</a>
       </div>
+      ${
+        g.activeEvent
+          ? `<div class="event-card"><strong>${g.activeEvent.title}</strong><p class="muted">${g.activeEvent.body}</p>
+            <div class="row">
+              <button id="a-ev-invest" class="primary">${g.activeEvent.investLabel}</button>
+              <button id="a-ev-ignore">${g.activeEvent.ignoreLabel}</button>
+            </div></div>`
+          : eventHint(g)
+            ? `<p class="muted">💡 ${eventHint(g)}</p>`
+            : ''
+      }
+      <h3>Stadtstatus & Spezialisierung</h3>
+      ${(() => {
+        const tier = cityTierOf(g);
+        const goals = strategicGoals(
+          g,
+          s.sat,
+          s.services.find((x) => x.kind === 'health')?.load ?? 999,
+        );
+        const tr = g.traffic ?? computeTraffic(g);
+        return `<p class="muted">${tier.name}${tier.next ? ` → ${tier.next} (${tier.progress}%)` : ' · MAX'} · Stau ${tr.congestion}% · Spec: ${SPECS.find((x) => x.id === (g.specialization || 'none'))?.name}</p>
+        <div class="row">${SPECS.map((sp) => `<button data-spec="${sp.id}" class="${g.specialization === sp.id ? 'active' : ''}" title="${sp.blurb}">${sp.icon} ${sp.name}</button>`).join('')}</div>
+        <ul class="cause-list">${goals.map((gl) => `<li><span>${gl.done ? '✓' : '○'} ${gl.title}</span><strong class="${gl.done ? 'pos' : ''}">${gl.blurb}</strong></li>`).join('')}</ul>`;
+      })()}
       <h3>Inventar</h3><div class="inv">${invHtml()}</div>
       <h3>Quests</h3>${questHtml()}
     `;
@@ -734,6 +793,57 @@ function wire() {
   });
   panel.querySelector('#a-overlay-land')?.addEventListener('click', () => {
     view.overlay = view.overlay === 'land' ? null : 'land';
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-overlay-traffic')?.addEventListener('click', () => {
+    view.overlay = view.overlay === 'traffic' ? null : 'traffic';
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-overlay-power')?.addEventListener('click', () => {
+    view.overlay = view.overlay === 'power' ? null : 'power';
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-overlay-health')?.addEventListener('click', () => {
+    view.overlay = view.overlay === 'health' ? null : 'health';
+    sfxClick();
+    paintPanel();
+  });
+  panel.querySelector('#a-ev-invest')?.addEventListener('click', () => {
+    if (resolveEvent(g, 'invest', say)) {
+      sfxBuy();
+      refresh();
+    } else sfxError();
+  });
+  panel.querySelector('#a-ev-ignore')?.addEventListener('click', () => {
+    resolveEvent(g, 'ignore', say);
+    sfxClick();
+    refresh();
+  });
+  panel.querySelectorAll('[data-spec]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const id = (el as HTMLElement).dataset.spec as SpecId;
+      if (setSpecialization(g, id, say)) {
+        sfxUpgrade();
+        refresh();
+      } else sfxError();
+    });
+  });
+  panel.querySelectorAll('[data-trade]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const to = (el as HTMLElement).dataset.trade as RegionId;
+      if (tradeToRegion(g, to, 'wood', 1, say)) {
+        sfxBuy();
+        refresh();
+      } else sfxError();
+    });
+  });
+  panel.querySelector('#a-cloud')?.addEventListener('click', () => {
+    g.cloudSyncAt = Date.now();
+    save(g);
+    say('Cloud-Sync markiert (lokal). Echtes iCloud/Play Games folgt später.');
     sfxClick();
     paintPanel();
   });

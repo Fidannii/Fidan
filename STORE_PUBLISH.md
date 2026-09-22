@@ -9,7 +9,7 @@ Alles Nötige ist vorbereitet — signieren & hochladen machst du mit deinen Dev
 
 | Asset | Status |
 |-------|--------|
-| Capacitor iOS/Android (`com.fidani.metrobuilder` 1.4.0) | ✅ |
+| Capacitor iOS/Android (`com.fidani.metrobuilder` 2.0.0) | ✅ |
 | App-Icon 1024 (ohne Alpha) + Splash | ✅ |
 | Privacy Manifest (`PrivacyInfo.xcprivacy`) | ✅ |
 | Export Compliance (`ITSAppUsesNonExemptEncryption=NO`) | ✅ |

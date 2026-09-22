@@ -14,6 +14,7 @@ import type {
   ServiceSnap,
 } from './types';
 import { cell, covered, roadNext } from './world';
+import { ensureProgression, specModifiers } from './cityProgress';
 
 export interface EcoDef {
   maintenance: number;
@@ -284,12 +285,6 @@ export function computeCitySim(g: Game): CitySim {
     sat = Math.min(100, sat + 4);
   }
 
-  const causes: HappinessCause[] = [...causeAcc.entries()]
-    .map(([label, delta]) => ({ label, delta: Math.round(delta / Math.max(1, houses)) }))
-    .filter((c) => c.delta !== 0)
-    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
-    .slice(0, 6);
-
   const jobGap = jobs - pop;
   const demand: DemandSnap = {
     residential: Math.max(-100, Math.min(100, Math.round(jobGap * 2 + (housing < jobs ? 20 : -10)))),
@@ -324,6 +319,27 @@ export function computeCitySim(g: Game): CitySim {
     services: serviceMaint,
     net: taxes + Math.floor(commerce) + Math.floor(industry) - maintTotal,
   };
+
+  ensureProgression(g);
+  const mod = specModifiers(g);
+  cashflow.taxes = Math.floor(cashflow.taxes * mod.taxMult);
+  cashflow.commerce = Math.floor(cashflow.commerce * mod.commerceMult);
+  cashflow.net =
+    cashflow.taxes + cashflow.commerce + cashflow.industry - cashflow.maintenance - cashflow.services;
+  sat = Math.max(0, Math.min(100, sat + mod.happiness));
+  if (mod.happiness) causeAcc.set('Spezialisierung', mod.happiness);
+
+  if (g.traffic && g.traffic.congestion > 50) {
+    const pen = Math.min(12, Math.floor((g.traffic.congestion - 50) / 5));
+    sat = Math.max(0, sat - pen);
+    causeAcc.set('Stau', -pen);
+  }
+
+  const causes: HappinessCause[] = [...causeAcc.entries()]
+    .map(([label, delta]) => ({ label, delta: Math.round(delta / Math.max(1, houses)) }))
+    .filter((c) => c.delta !== 0)
+    .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+    .slice(0, 6);
 
   return {
     pop,

@@ -25,6 +25,10 @@ import { difficulty, scaledCost, scaledProdMs, buyLevelCost, xpPacks, MAX_LEVEL,
 import { iapDef, type IapSku } from '../iap/catalog';
 import { checkAchievements } from './meta';
 import { clearAllSaves, loadGame, persistGame } from './save';
+import { switchCity as switchCityImpl, ensureCities, regionalTrade } from './cities';
+import { computeTraffic } from './traffic';
+import { ensureProgression } from './cityProgress';
+import { ensureEvents, tickEvents } from './events';
 import { canUpgradeHouseSoft, getSim, refreshSim } from './systems';
 import type { CitySim } from './types';
 
@@ -552,49 +556,33 @@ export function unlockRegion(g: Game, id: RegionId, say: Say): boolean {
 }
 
 export function switchRegion(g: Game, id: RegionId, say: Say): Game | null {
-  if (!g.unlockedRegions.includes(id)) {
-    say('Region gesperrt.');
-    return null;
-  }
-  if (id === g.region) {
-    say('Bereits hier.');
-    return null;
-  }
-  // Persist currencies into a fresh map for that region (demo: carry inventory/cash)
-  const next = createGame(id);
-  next.cash = g.cash;
-  next.gems = g.gems;
-  next.keys = { ...g.keys };
-  next.tokens = g.tokens;
-  next.inv = { ...g.inv };
-  next.level = g.level;
-  next.xp = g.xp;
-  next.unlockedRegions = [...g.unlockedRegions];
-  next.club = g.club;
-  next.weekScore = g.weekScore;
-  next.weekEnds = g.weekEnds;
-  next.mayorRank = g.mayorRank;
-  next.stats = g.stats;
-  next.pendingLevelUps = g.pendingLevelUps;
-  next.achievements = g.achievements;
-  next.dailyStreak = g.dailyStreak;
-  next.lastDailyAt = g.lastDailyAt;
-  next.tutorialStep = g.tutorialStep;
-  next.mastery = g.mastery;
-  next.saveVersion = g.saveVersion;
-  next.iapReceipts = { ...g.iapReceipts };
-  say(`Region: ${REGIONS[id].name}`);
-  return next;
+  ensureCities(g);
+  ensureProgression(g);
+  return switchCityImpl(g, id, say);
+}
+
+export function tradeToRegion(
+  g: Game,
+  to: RegionId,
+  res: Res,
+  amount: number,
+  say: Say,
+): boolean {
+  return regionalTrade(g, to, res, amount, say);
 }
 
 export function tick(g: Game, say: Say) {
   const now = Date.now();
+  g.traffic = computeTraffic(g);
+  ensureProgression(g);
+  ensureEvents(g);
   tickProd(g, now);
   taxes(g, say, now);
   resolveDisaster(g, say);
   tickWeek(g, say, now);
   refreshOffers(g, now);
   g.offers = g.offers.filter((o) => o.expires > now);
+  tickEvents(g, say);
 }
 
 export function prog(g: Game, x: number, y: number): number {

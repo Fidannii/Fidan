@@ -1,4 +1,4 @@
-# App Store Connect Listing — MetroBuilder 1.4.0 (EN)
+# App Store Connect Listing — MetroBuilder 2.0.0 (EN)
 
 ## Name
 MetroBuilder
@@ -25,7 +25,7 @@ Core progress is reachable without paying. Credits are soft currency. Real-money
 ## Keywords
 city builder,simulation,strategy,idle,economy,metropolis,build
 
-## What's New (1.4.0)
+## What's New (2.0.0)
 Audio, tutorial, daily rewards, achievements, post-100 mastery. Soft credits + real-money IAP. Level 1–100 with rising difficulty.
 
 ## Privacy Policy URL

@@ -1151,6 +1151,33 @@ button:disabled {
   line-height: 1.5;
 }
 
+/* —— Choice events (Phase 4/6) —— */
+.event-card {
+  margin: 0.65rem 0 0.85rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(62, 207, 142, 0.12), rgba(240, 213, 106, 0.08));
+  border: 1px solid rgba(154, 240, 196, 0.28);
+  animation: tut-in 0.35s ease;
+}
+
+.event-card strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
+  color: var(--accent, #9af0c4);
+}
+
+.event-card p {
+  margin: 0 0 0.55rem;
+  line-height: 1.45;
+}
+
+.event-card .row {
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 860px) {
   #app {
     grid-template-columns: 1fr;

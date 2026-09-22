@@ -3,7 +3,7 @@
 **Download-Link:** https://github.com/Fidannii/Fidan/archive/refs/heads/cursor/metrobuilder-game-app-7864.zip  
 **Download-Seite:** https://fidannii.github.io/Fidan/download.html (nach Pages-Setup)
 
-Städtebau-Simulation für **Android + iOS** — **v1.5.0** (Phase-0 Hardening · Capacitor · Stores).
+Städtebau-Simulation für **Android + iOS** — **v2.0.0** (Simulation Core · City Life · Traffic · Multi-City).
 
 Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 
@@ -14,7 +14,7 @@ Roadmap 2.0: **[docs/ROADMAP_2.0.md](./docs/ROADMAP_2.0.md)**
 | | |
 |--|--|
 | Bundle / Package ID | `com.fidani.metrobuilder` |
-| Version | **1.5.0** (Build / versionCode **8**) |
+| Version | **2.0.0** (Build / versionCode **9**) |
 | Android | Ordner `android/` |
 | iOS | Ordner `ios/` |
 
@@ -46,4 +46,4 @@ npm run ci:gate   # test + build
 - Screenshots: `store/screenshots/`
 - Privacy: `docs/privacy.html` → https://fidannii.github.io/Fidan/privacy.html
 
-Features: Level 1–100 · Daily · Erfolge · Tutorial · Audio · Meisterschaft · Soft-Credits + Echtgeld-IAP
+Features: Level 1–100 · Daily · Erfolge · Tutorial · Audio · Meisterschaft · Soft-Credits + Echtgeld-IAP · Tag/Nacht · Verkehr · Spezialisierung · Multi-City · Choice-Events

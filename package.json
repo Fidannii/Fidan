@@ -1,7 +1,7 @@
 {
   "name": "metrobuilder",
   "private": true,
-  "version": "1.5.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run cap:sync && npx cap open ios",
     "cap:android": "npm run cap:sync && npx cap open android",
-    "release:prep": "npm run cap:sync && echo 'Fertig. Weiter: HOCHLADEN.md — Android Studio (.aab) oder Xcode (Archive)'",
+    "release:prep": "npm run cap:sync && echo 'Fertig. Weiter: HOCHLADEN.md \u2014 Android Studio (.aab) oder Xcode (Archive)'",
     "icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/generate-store-screenshots.mjs",
     "test": "vitest run",

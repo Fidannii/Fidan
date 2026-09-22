@@ -8,7 +8,7 @@ https://fidannii.github.io/Fidan/download.html
 (nach GitHub Pages auf Branch mit `/docs`)
 
 **Cloud-Agent-Paket:**  
-`/opt/cursor/artifacts/downloads/MetroBuilder-1.4.0-android-ios-store-ready.zip`
+`/opt/cursor/artifacts/downloads/MetroBuilder-2.0.0-android-ios-store-ready.zip`
 
-Enthält Android + iOS Projekte (`com.fidani.metrobuilder`, v1.4.0).  
+Enthält Android + iOS Projekte (`com.fidani.metrobuilder`, v2.0.0).  
 Weiter: [HOCHLADEN.md](./HOCHLADEN.md)

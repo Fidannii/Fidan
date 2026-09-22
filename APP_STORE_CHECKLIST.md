@@ -1,4 +1,4 @@
-# App Store / Play Store — Checkliste (1.4.0)
+# App Store / Play Store — Checkliste (2.0.0)
 
 Vollständige Anleitung: **[HOCHLADEN.md](./HOCHLADEN.md)**
 

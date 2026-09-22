@@ -8,8 +8,8 @@ Ein Code → zwei native Apps:
 
 | Plattform | Store | Package / Bundle ID | Version |
 |-----------|-------|---------------------|---------|
-| **Android** | [Google Play Console](https://play.google.com/console) | `com.fidani.metrobuilder` | 1.4.0 (versionCode 6) |
-| **iOS** | [App Store Connect](https://appstoreconnect.apple.com) | `com.fidani.metrobuilder` | 1.4.0 (Build 6) |
+| **Android** | [Google Play Console](https://play.google.com/console) | `com.fidani.metrobuilder` | 2.0.0 (versionCode 9) |
+| **iOS** | [App Store Connect](https://appstoreconnect.apple.com) | `com.fidani.metrobuilder` | 2.0.0 (Build 9) |
 
 > „iCloud App Store“ = **Apple App Store**. Käufe laufen über die **Apple-ID** (dieselbe wie iCloud).
 

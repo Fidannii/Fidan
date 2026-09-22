@@ -1,7 +1,9 @@
 import { DEFS } from '../core/catalog';
 import type { Cell, Game } from '../core/types';
 import { cell, prog } from '../core/sim';
-import { landColor, landValueAt } from '../core/systems';
+import { landColor, landValueAt, serviceQualityAt } from '../core/systems';
+import { congestionAt, trafficColor } from '../core/traffic';
+import { isRoad } from '../core/world';
 import { drawBuildingSprite, isoDiamond } from './sprites';
 import { spawnFloat, tickFloats, type FloatLabel } from './fx';
 
@@ -39,9 +41,13 @@ export class View {
   floats: FloatLabel[] = [];
   citizens: Citizen[] = [];
   time = 0;
-  /** Phase 1 overlay: land value heat map */
-  overlay: null | 'land' = null;
+  /** Phase 1–3 overlays */
+  overlay: null | 'land' | 'traffic' | 'power' | 'health' = null;
+  /** 0 day → 1 night cycle */
+  dayPhase = 0.25;
+  vehicles: Array<{ x: number; y: number; tx: number; ty: number; bus: boolean; speed: number }> = [];
   private citizenInit = false;
+  private vehicleInit = false;
   private lastRegion: string | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -120,14 +126,18 @@ export class View {
     if (this.lastRegion !== g.region) {
       this.lastRegion = g.region;
       this.citizenInit = false;
+      this.vehicleInit = false;
       this.citizens = [];
+      this.vehicles = [];
     }
     if (this.citizenInit) return;
     this.citizenInit = true;
-    const roads = g.cells.filter((c) => c.b && (c.b.id === 'road' || c.b.id === 'highway'));
+    const roads = g.cells.filter((c) => c.b && isRoad(c.b.id));
     const hues = ['#ff8fab', '#7ad4ff', '#f0d56a', '#c4b5fd', '#fb923c', '#86efac'];
-    for (let i = 0; i < Math.min(14, Math.max(4, roads.length)); i++) {
-      const r = roads[i % roads.length];
+    const n = Math.min(18, Math.max(4, roads.length));
+    for (let i = 0; i < n; i++) {
+      const r = roads[i % Math.max(1, roads.length)];
+      if (!r) break;
       this.citizens.push({
         x: r.x + 0.5,
         y: r.y + 0.5,
@@ -139,7 +149,29 @@ export class View {
     }
   }
 
+  private ensureVehicles(g: Game) {
+    if (this.vehicleInit) return;
+    this.vehicleInit = true;
+    const roads = g.cells.filter((c) => c.b && isRoad(c.b.id));
+    const cong = g.traffic?.congestion ?? 30;
+    const count = Math.min(20, Math.max(3, Math.floor(roads.length * 0.35 + cong / 15)));
+    for (let i = 0; i < count; i++) {
+      const r = roads[i % Math.max(1, roads.length)];
+      if (!r) break;
+      this.vehicles.push({
+        x: r.x + 0.5,
+        y: r.y + 0.5,
+        tx: r.x + 0.5,
+        ty: r.y + 0.5,
+        bus: i % 7 === 0,
+        speed: (i % 7 === 0 ? 0.006 : 0.01) * (1 - Math.min(0.6, cong / 150)),
+      });
+    }
+  }
+
   private sky(g: Game, w: number, h: number) {
+    this.dayPhase = (Math.sin(this.time / 45000) + 1) / 2;
+    const night = this.dayPhase;
     const ctx = this.ctx;
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     if (g.region === 'desert') {
@@ -163,29 +195,29 @@ export class View {
     }
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
-
-    // stars (subtle)
+    ctx.fillStyle = `rgba(255,220,160,${0.08 * (1 - night)})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = `rgba(5,10,30,${0.35 * night})`;
+    ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
     for (let i = 0; i < 48; i++) {
       const sx = (i * 137.5) % w;
       const sy = (i * 89.3) % (h * 0.45);
       const tw = 0.35 + 0.65 * Math.abs(Math.sin(this.time / 800 + i));
-      ctx.globalAlpha = tw * 0.45;
+      ctx.globalAlpha = tw * (0.2 + night * 0.55);
       ctx.fillRect(sx, sy, i % 5 === 0 ? 2 : 1, i % 5 === 0 ? 2 : 1);
     }
     ctx.globalAlpha = 1;
-
-    // sun / moon
-    const gx = w * 0.8;
-    const gy = h * 0.14;
+    const gx = w * (0.2 + 0.6 * (1 - night));
+    const gy = h * (0.12 + 0.08 * night);
     const sun = ctx.createRadialGradient(gx, gy, 2, gx, gy, 140);
-    if (g.region === 'desert') {
+    if (night > 0.55) {
+      sun.addColorStop(0, 'rgba(220,230,255,0.45)');
+      sun.addColorStop(1, 'rgba(100,120,180,0)');
+    } else if (g.region === 'desert') {
       sun.addColorStop(0, 'rgba(255,210,90,0.7)');
       sun.addColorStop(0.35, 'rgba(255,150,50,0.25)');
       sun.addColorStop(1, 'rgba(255,120,40,0)');
-    } else if (g.region === 'snow') {
-      sun.addColorStop(0, 'rgba(220,235,255,0.5)');
-      sun.addColorStop(1, 'rgba(120,160,220,0)');
     } else {
       sun.addColorStop(0, 'rgba(140,240,200,0.35)');
       sun.addColorStop(0.4, 'rgba(80,180,140,0.12)');
@@ -193,12 +225,10 @@ export class View {
     }
     ctx.fillStyle = sun;
     ctx.fillRect(0, 0, w, h);
-
-    // clouds
     for (let i = 0; i < 6; i++) {
       const cx = ((this.time * 0.012 * (0.25 + i * 0.08) + i * 240) % (w + 260)) - 120;
       const cy = 28 + i * 26;
-      ctx.globalAlpha = 0.08 + (i % 3) * 0.02;
+      ctx.globalAlpha = 0.04 + (1 - night) * 0.05;
       ctx.fillStyle = '#fff';
       ctx.beginPath();
       ctx.ellipse(cx, cy, 70 + i * 8, 16 + i, 0, 0, Math.PI * 2);
@@ -273,6 +303,30 @@ export class View {
     if (this.overlay === 'land') {
       const lv = landValueAt(g, c.x, c.y);
       isoDiamond(ctx, cx, cy, hw * 0.92, hh * 0.92, landColor(lv));
+    } else if (this.overlay === 'traffic' && c.b && isRoad(c.b.id)) {
+      isoDiamond(ctx, cx, cy, hw * 0.92, hh * 0.92, trafficColor(congestionAt(g, c.x, c.y)));
+    } else if (this.overlay === 'power') {
+      const q = serviceQualityAt(g, c.x, c.y, ['power', 'solar']);
+      if (q.covered) isoDiamond(ctx, cx, cy, hw * 0.9, hh * 0.9, `rgba(240,210,90,${0.15 + q.quality * 0.35})`);
+    } else if (this.overlay === 'health') {
+      const q = serviceQualityAt(g, c.x, c.y, ['hospital']);
+      if (q.covered) isoDiamond(ctx, cx, cy, hw * 0.9, hh * 0.9, `rgba(255,100,120,${0.12 + q.quality * 0.35})`);
+    }
+    // night building lights
+    if (c.b && this.dayPhase > 0.55 && c.b.id !== 'road' && c.b.id !== 'highway') {
+      ctx.fillStyle = `rgba(255,220,140,${0.15 + 0.2 * this.dayPhase})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 8 * s, 3 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // construction crane hint while producing
+    if (c.b?.jobAt && c.b.ready <= 0 && DEFS[c.b.id].produce) {
+      ctx.strokeStyle = 'rgba(240,213,106,0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - 4 * s);
+      ctx.lineTo(cx + 8 * s, cy - 16 * s);
+      ctx.stroke();
     }
 
     if (c.terrain === 'water') {
@@ -318,7 +372,8 @@ export class View {
 
   private tickCitizens(g: Game) {
     this.ensureCitizens(g);
-    const roads = g.cells.filter((c) => c.b && (c.b.id === 'road' || c.b.id === 'highway'));
+    this.ensureVehicles(g);
+    const roads = g.cells.filter((c) => c.b && isRoad(c.b.id));
     if (!roads.length) return;
     for (const cit of this.citizens) {
       const dx = cit.tx - cit.x;
@@ -333,6 +388,19 @@ export class View {
         cit.y += (dy / dist) * cit.speed;
       }
     }
+    for (const v of this.vehicles) {
+      const dx = v.tx - v.x;
+      const dy = v.ty - v.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 0.08) {
+        const n = roads[Math.floor(Math.random() * roads.length)];
+        v.tx = n.x + 0.4 + Math.random() * 0.2;
+        v.ty = n.y + 0.4 + Math.random() * 0.2;
+      } else {
+        v.x += (dx / dist) * v.speed;
+        v.y += (dy / dist) * v.speed;
+      }
+    }
   }
 
   private drawCitizens() {
@@ -340,17 +408,26 @@ export class View {
     const s = this.scale;
     for (const cit of this.citizens) {
       const p = this.toScreen(cit.x, cit.y);
-      // shadow
       ctx.fillStyle = 'rgba(0,0,0,0.25)';
       ctx.beginPath();
       ctx.ellipse(p.x, p.y + 1 * s, 2.2 * s, 1.1 * s, 0, 0, Math.PI * 2);
       ctx.fill();
-      // body
       ctx.fillStyle = cit.hue;
       ctx.beginPath();
       ctx.arc(p.x, p.y - 3 * s, 2.4 * s, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillRect(p.x - 1.4 * s, p.y - 1.5 * s, 2.8 * s, 4 * s);
+    }
+    for (const v of this.vehicles) {
+      const p = this.toScreen(v.x, v.y);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y + 1 * s, (v.bus ? 5 : 3.2) * s, 1.4 * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = v.bus ? '#3ecf8e' : '#e8eef2';
+      ctx.fillRect(p.x - (v.bus ? 5 : 3) * s, p.y - 2.5 * s, (v.bus ? 10 : 6) * s, 3.2 * s);
+      ctx.fillStyle = '#7ad4ff';
+      ctx.fillRect(p.x - (v.bus ? 3 : 1.5) * s, p.y - 2.2 * s, (v.bus ? 3 : 2) * s, 1.6 * s);
     }
   }
 

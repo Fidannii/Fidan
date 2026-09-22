@@ -147,7 +147,13 @@ export function createGame(region: RegionId = 'valley'): Game {
     lastDailyAt: 0,
     tutorialStep: 0,
     mastery: 0,
-    saveVersion: 6,
+    saveVersion: 7,
+    specialization: 'none',
+    cityTier: 'dorf',
+    cities: {},
+    activeEvent: null,
+    nextEventAt: Date.now() + 90_000,
+    eventPrep: 0,
     iapReceipts: {},
   };
 }

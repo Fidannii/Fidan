@@ -1,4 +1,4 @@
-# Google Play Listing — MetroBuilder 1.4.0
+# Google Play Listing — MetroBuilder 2.0.0
 
 Package name: `com.fidani.metrobuilder`  
 Category: Games → Simulation  
@@ -23,7 +23,7 @@ MetroBuilder ist eine Städtebau-Simulation für Android:
 
 Kernfortschritt ist ohne Zahlung erreichbar. Credits sind Soft Currency. Echtgeld-Käufe laufen über Google Play (Consumables).
 
-## Was ist neu (1.4.0)
+## Was ist neu (2.0.0)
 Audio, Tutorial, Daily-Boni, Erfolge & Meisterschaft. Soft-Credits + Google Play IAP. Level 1–100.
 
 ## Grafiken

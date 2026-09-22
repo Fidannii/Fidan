@@ -212,4 +212,49 @@ export interface Game {
   /** cached Simulation Core 2.0 snapshot */
   sim?: CitySim;
   lastSimAt?: number;
+  /** Phase 3 traffic snapshot */
+  traffic?: {
+    segments: number;
+    volume: number;
+    capacity: number;
+    congestion: number;
+    busStops: number;
+  };
+  /** Phase 4 */
+  cityTier?: 'dorf' | 'kleinstadt' | 'stadt' | 'grossstadt' | 'metropole';
+  specialization?: 'none' | 'green' | 'industry' | 'finance' | 'tourism';
+  /** Phase 5 persistent cities */
+  cities?: Partial<
+    Record<
+      RegionId,
+      {
+        region: RegionId;
+        cells: Cell[];
+        size: number;
+        unlock: number;
+        built: number;
+        disasterUntil: number | null;
+        offers: TradeOffer[];
+        lastOfferAt: number;
+        quests: Quest[];
+        specialization: Game['specialization'];
+        cityTier: Game['cityTier'];
+        localCash: number;
+        localInv: Record<Res, number>;
+      }
+    >
+  >;
+  /** Phase 4/6 events */
+  activeEvent?: {
+    id: string;
+    title: string;
+    body: string;
+    investCost: number;
+    investLabel: string;
+    ignoreLabel: string;
+  } | null;
+  nextEventAt?: number;
+  eventPrep?: number;
+  /** Phase 7 stub: last cloud sync attempt */
+  cloudSyncAt?: number;
 }
