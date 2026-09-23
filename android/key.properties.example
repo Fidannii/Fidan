@@ -1,0 +1,7 @@
+# Kopiere diese Datei nach key.properties (liegt in android/) und fülle sie aus.
+# Nie committen — gehört in .gitignore.
+
+storePassword=DEIN_STORE_PASSWORT
+keyPassword=DEIN_KEY_PASSWORT
+keyAlias=metrobuilder
+storeFile=../metrobuilder-upload.jks
