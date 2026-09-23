@@ -15,7 +15,7 @@
 | P0-06 | Privacy mismatch | **VERIFIED** → privacy claims 3.0.x / local-first; data map aligned |
 | P0-07 | Core unplayable | **VERIFIED** — polish present |
 | P0-08 | Core-loop crash (known) | **VERIFIED** (automated) — device NOT_RUN |
-| P0-09 | IAP broken checkout | **BLOCKED_EXTERNAL** (sandbox) — decision: ship with soft UX; disable if sandbox fails |
+| P0-09 | IAP broken checkout | **FIXED** for first release — Option B: IAP disabled until sandbox (`IAP_ENABLED_FOR_PRODUCTION=false`) |
 
 ## P1
 
