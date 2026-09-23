@@ -62,7 +62,7 @@ import {
   xpProgress,
 } from './core/progression';
 import type { LevelUpEvent } from './core/progression';
-import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus, getActiveStore, storeLabel } from './iap/iap';
+import { initIap, listIapOffers, purchaseIap, restoreIap, getIapStatus, getActiveStore, storeLabel, IAP_ENABLED_FOR_PRODUCTION } from './iap/iap';
 import type { IapSku } from './iap/catalog';
 import {
   ACHIEVEMENTS,
@@ -349,10 +349,11 @@ function paintPanel() {
               const packs = xpPacks(g);
               const lvlCost = buyLevelCost(g);
               const remain = xp.need - xp.cur;
-              const iap = listIapOffers();
+              const iap = IAP_ENABLED_FOR_PRODUCTION ? listIapOffers() : [];
               const store = getActiveStore();
-              const iapNote =
-                getIapStatus() === 'ready'
+              const iapNote = !IAP_ENABLED_FOR_PRODUCTION
+                ? 'Echtgeld-Käufe sind in dieser Version deaktiviert (Sandbox noch offen). XP und Level mit Credits möglich.'
+                : getIapStatus() === 'ready'
                   ? store === 'apple'
                     ? 'Zahlung über Apple App Store (Apple-ID / iCloud-Konto).'
                     : store === 'google'
@@ -362,7 +363,9 @@ function paintPanel() {
                     ? `${storeLabel(store)} wird verbunden…`
                     : `${storeLabel(store)} nicht bereit — Produkte in der Console prüfen.`;
               return `
-      <h3>Echtgeld · ${storeLabel(store)}</h3>
+      ${
+        IAP_ENABLED_FOR_PRODUCTION
+          ? `<h3>Echtgeld · ${storeLabel(store)}</h3>
       <p class="muted">${iapNote}</p>
       <div class="shop-grid iap-grid">
         ${iap
@@ -375,7 +378,10 @@ function paintPanel() {
           )
           .join('')}
       </div>
-      <div class="row"><button id="a-iap-restore" class="ghost">Käufe wiederherstellen (${store === 'apple' ? 'Apple-ID' : store === 'google' ? 'Google' : 'Store'})</button></div>
+      <div class="row"><button id="a-iap-restore" class="ghost">Käufe wiederherstellen (${store === 'apple' ? 'Apple-ID' : store === 'google' ? 'Google' : 'Store'})</button></div>`
+          : `<h3>Fortschritt</h3>
+      <p class="muted">${iapNote}</p>`
+      }
       <h3>Mit Credits (Soft)</h3>
       <p class="muted">XP oder Level auch mit 💰 Spiel-Credits.</p>
       <div class="shop-grid">

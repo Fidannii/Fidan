@@ -1,8 +1,11 @@
 import { Capacitor } from '@capacitor/core';
 import { IAP_PRODUCTS, iapDef, type IapSku } from './catalog';
+import { IAP_ENABLED_FOR_PRODUCTION } from './flags';
 
 export type IapStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';
 export type IapStoreId = 'apple' | 'google' | 'web' | 'none';
+
+export { IAP_ENABLED_FOR_PRODUCTION };
 
 export interface IapOfferView {
   id: IapSku;
@@ -102,6 +105,16 @@ export function initIap(opts: { onGrant: GrantFn; say: SayFn }): Promise<void> {
   grantReward = opts.onGrant;
   say = opts.say;
   if (readyPromise) return readyPromise;
+
+  // Production shipping gate: keep architecture, do not expose untested checkout.
+  if (!IAP_ENABLED_FOR_PRODUCTION) {
+    activeStore = detectStore();
+    status = 'unavailable';
+    for (const p of IAP_PRODUCTS) priceMap.set(p.id, p.fallbackPrice);
+    readyPromise = Promise.resolve();
+    return readyPromise;
+  }
+
   readyPromise = boot();
   return readyPromise;
 }
