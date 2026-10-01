@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: #0b1f1a;
+  --ink-muted: #4d635b;
+  --ink-faint: #8a9c94;
+  --paper: #f3f6f4;
+  --surface: #ffffff;
+  --surface-2: #eef3f0;
+  --surface-3: #e2ebe6;
+  --border: #d5e0da;
+  --accent: #1a7a5a;
+  --accent-hover: #15664b;
+  --accent-soft: #d9efe6;
+  --ring: #1a7a5a66;
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  color: var(--foreground);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #d7ebe2 0%, transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, #e7efe8 0%, transparent 50%),
+    linear-gradient(180deg, #f7faf8 0%, #eef3f0 100%);
+  font-family: var(--font-body), "IBM Plex Sans", sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), "Fraunces", serif;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.4s ease-in-out infinite;
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(11, 31, 26, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 31, 26, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 35%, transparent 75%);
+}
