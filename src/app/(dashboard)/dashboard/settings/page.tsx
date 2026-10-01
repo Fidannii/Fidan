@@ -16,13 +16,13 @@ const checklist = [
   },
   {
     title: "Löschkonzept Audio",
-    body: "Aufnahmen nach 30 Tagen automatisch löschen (siehe supabase/schema.sql).",
-    done: false,
+    body: "30-Tage Cleanup via SQL-Funktion + /api/cron/cleanup-recordings (docs/audio-retention.md).",
+    done: true,
   },
   {
     title: "Webhook-Signatur",
-    body: "Retell/Twilio Signaturprüfung vor Persistenz in Produktion aktivieren.",
-    done: false,
+    body: "HMAC-Prüfung für Retell (x-retell-signature) ist implementiert; Secret in Prod setzen.",
+    done: true,
   },
 ];
 
