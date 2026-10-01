@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "mock:retell": "node scripts/mock-retell-webhook.mjs"
+    "mock:retell": "node scripts/mock-retell-webhook.mjs",
+    "sync:retell": "node --env-file=.env.local scripts/sync-retell-agent.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
