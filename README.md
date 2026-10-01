@@ -94,12 +94,21 @@ Ohne diese Keys bleibt der Demo-Store aktiv.
 4. Webhook-URL auf `/api/v1/webhooks/voice-event` zeigen (HMAC folgt separat).
 5. Deutsche Twilio-Nummer verbinden.
 
+## Multi-Tenancy / RLS
+
+Migration + Verification: [`docs/rls-multi-tenancy.md`](docs/rls-multi-tenancy.md)
+
+```bash
+npm run test:rls
+```
+
 ## DSGVO Pilot-Checkliste
 
 - [x] Aufzeichnungshinweis im Agent-Greeting
 - [ ] AV-Verträge (Supabase, Vercel, Telephony)
 - [x] Audio-Löschung nach 30 Tagen (SQL + Cron – [`docs/audio-retention.md`](docs/audio-retention.md))
 - [x] Webhook-Signaturprüfung (HMAC; Secret in Prod setzen)
+- [x] RLS Multi-Tenancy Policies + Testskript
 
 ## Monetarisierung (Kontext)
 

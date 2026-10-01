@@ -2,7 +2,8 @@ export type DataBackend = "demo" | "supabase";
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(
-    process.env.SUPABASE_URL?.trim() &&
+    (process.env.SUPABASE_URL?.trim() ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) &&
       process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
 }
@@ -27,7 +28,9 @@ export function resolveDataBackend(): DataBackend {
 }
 
 export function getSupabaseUrl(): string {
-  const url = process.env.SUPABASE_URL?.trim();
+  const url =
+    process.env.SUPABASE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   if (!url) throw new Error("SUPABASE_URL is not set");
   return url;
 }

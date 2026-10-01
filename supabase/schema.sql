@@ -111,28 +111,27 @@ alter table public.knowledge_documents enable row level security;
 alter table public.calls enable row level security;
 alter table public.leads enable row level security;
 
+-- RLS policies: see supabase/migrations/004_rls_multi_tenancy_policies.sql
 create or replace function public.current_org_id()
 returns uuid
 language sql
 stable
 as $$
-  select organization_id from public.profiles where id = auth.uid()
+  select coalesce(
+    (
+      nullif(current_setting('request.jwt.claims', true), '')::jsonb
+      -> 'app_metadata'
+      ->> 'organization_id'
+    )::uuid,
+    (
+      nullif(current_setting('request.jwt.claims', true), '')::jsonb
+      -> 'user_metadata'
+      ->> 'organization_id'
+    )::uuid,
+    (
+      select p.organization_id
+      from public.profiles p
+      where p.id = auth.uid()
+    )
+  );
 $$;
-
-create policy org_select on public.organizations
-  for select using (id = public.current_org_id());
-
-create policy profiles_select on public.profiles
-  for select using (organization_id = public.current_org_id());
-
-create policy agents_all on public.agents
-  for all using (organization_id = public.current_org_id());
-
-create policy knowledge_all on public.knowledge_documents
-  for all using (organization_id = public.current_org_id());
-
-create policy calls_all on public.calls
-  for all using (organization_id = public.current_org_id());
-
-create policy leads_all on public.leads
-  for all using (organization_id = public.current_org_id());
