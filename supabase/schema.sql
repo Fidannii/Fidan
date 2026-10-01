@@ -101,9 +101,8 @@ create index if not exists idx_calls_org_created on public.calls(organization_id
 create index if not exists idx_agents_org on public.agents(organization_id);
 
 -- Auto-delete recordings after 30 days (DSGVO Löschkonzept)
--- Schedule via pg_cron or external job:
--- update public.calls set recording_url = null
--- where recording_url is not null and created_at < now() - interval '30 days';
+-- Full migration: supabase/migrations/003_audio_retention_cleanup.sql
+-- Vercel cron: GET/POST /api/v1/cron/cleanup-recordings
 
 alter table public.organizations enable row level security;
 alter table public.profiles enable row level security;

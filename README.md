@@ -98,8 +98,8 @@ Ohne diese Keys bleibt der Demo-Store aktiv.
 
 - [x] Aufzeichnungshinweis im Agent-Greeting
 - [ ] AV-Verträge (Supabase, Vercel, Telephony)
-- [ ] Audio-Löschung nach 30 Tagen
-- [ ] Webhook-Signaturprüfung
+- [x] Audio-Löschung nach 30 Tagen (SQL + Cron – [`docs/audio-retention.md`](docs/audio-retention.md))
+- [x] Webhook-Signaturprüfung (HMAC; Secret in Prod setzen)
 
 ## Monetarisierung (Kontext)
 

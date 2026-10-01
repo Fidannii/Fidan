@@ -284,3 +284,22 @@ export async function resetDemoStore(): Promise<DemoStore> {
   await saveStore(seed);
   return seed;
 }
+
+/** Null recording_url for calls created before cutoff (ISO). */
+export async function cleanupDemoRecordings(cutoffIso: string): Promise<number> {
+  const store = await ensureStore();
+  const cutoff = +new Date(cutoffIso);
+  let cleaned = 0;
+  store.calls = store.calls.map((call) => {
+    if (
+      call.recording_url &&
+      +new Date(call.created_at) < cutoff
+    ) {
+      cleaned += 1;
+      return { ...call, recording_url: null };
+    }
+    return call;
+  });
+  if (cleaned > 0) await saveStore(store);
+  return cleaned;
+}
