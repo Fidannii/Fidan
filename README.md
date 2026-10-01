@@ -6,8 +6,11 @@ Autonomer 24/7 Inbound-Voice-Agent für Immobilienmakler: Anrufe entgegennehmen,
 
 - **Next.js 16** (App Router, TypeScript)
 - **Tailwind CSS** + leichte Shadcn-ähnliche UI-Primitives
-- **Demo-Store** (`data/demo-store.json`) – produktionsnah ohne externe Keys
-- **Supabase Schema** bereit unter [`supabase/schema.sql`](supabase/schema.sql)
+- **Data Access Facade** (`src/lib/db/store.ts`) mit Backend-Switch:
+  - Demo: `data/demo-store.json`
+  - Prod-ready: Supabase Client (`@supabase/supabase-js`, Service Role)
+- **Supabase Schema + Seed**: [`supabase/schema.sql`](supabase/schema.sql), [`supabase/seed.sql`](supabase/seed.sql)
+- Setup-Doku: [`docs/supabase-setup.md`](docs/supabase-setup.md)
 - Voice-Webhook: `POST /api/v1/webhooks/voice-event`
 - Browser-Call-Simulator (Leitfaden für Retell/Twilio-Pilot)
 
@@ -51,12 +54,26 @@ curl -X POST http://localhost:3000/api/v1/webhooks/voice-event \
   }'
 ```
 
+## Supabase umschalten
+
+Siehe [`docs/supabase-setup.md`](docs/supabase-setup.md). Kurz:
+
+```bash
+# nach schema.sql + seed.sql
+DATA_BACKEND=supabase
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+OPSFLOW_DEFAULT_ORG_ID=11111111-1111-1111-1111-111111111111
+```
+
+Ohne diese Keys bleibt der Demo-Store aktiv.
+
 ## Produktion (Retell / Twilio / Supabase)
 
-1. SQL aus `supabase/schema.sql` im Supabase SQL Editor (EU Frankfurt) ausführen.
-2. Env setzen (siehe `.env.example`).
+1. SQL aus `supabase/schema.sql` + `supabase/seed.sql` (EU Frankfurt) ausführen.
+2. Env setzen (siehe `.env.example`) und `DATA_BACKEND=supabase`.
 3. Retell-Agent mit Prompt aus `src/lib/ai/prompts/realEstateAgent.ts` anlegen.
-4. Webhook-URL auf `/api/v1/webhooks/voice-event` zeigen.
+4. Webhook-URL auf `/api/v1/webhooks/voice-event` zeigen (HMAC folgt separat).
 5. Deutsche Twilio-Nummer verbinden.
 
 ## DSGVO Pilot-Checkliste

@@ -1,4 +1,7 @@
 import { Card } from "@/components/ui/card";
+import { getActiveDataBackend } from "@/lib/db/store";
+
+export const dynamic = "force-dynamic";
 
 const checklist = [
   {
@@ -24,6 +27,8 @@ const checklist = [
 ];
 
 export default function SettingsPage() {
+  const backend = getActiveDataBackend();
+
   return (
     <div className="space-y-6">
       <div>
@@ -34,6 +39,20 @@ export default function SettingsPage() {
           Pilotkunden-Checkliste für Datenschutz und Betriebsbereitschaft.
         </p>
       </div>
+
+      <Card>
+        <h2 className="font-display text-xl">Data Backend</h2>
+        <p className="mt-2 text-sm text-[var(--ink-muted)]">
+          Aktiv:{" "}
+          <span className="font-medium text-[var(--ink)]">
+            {backend === "supabase" ? "Supabase" : "Demo-Store (JSON)"}
+          </span>
+        </p>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">
+          Umschalten über `DATA_BACKEND` bzw. Supabase-Env-Keys. Details:
+          `docs/supabase-setup.md`.
+        </p>
+      </Card>
 
       <div className="grid gap-4">
         {checklist.map((item) => (
