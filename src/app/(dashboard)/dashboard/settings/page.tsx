@@ -15,6 +15,11 @@ const checklist = [
     done: false,
   },
   {
+    title: "Multi-Tenancy / RLS",
+    body: "JWT-basierte organization_id Policies + npm run test:rls (docs/rls-multi-tenancy.md).",
+    done: true,
+  },
+  {
     title: "Löschkonzept Audio",
     body: "30-Tage Cleanup via cleanup_expired_recordings() + /api/v1/cron/cleanup-recordings.",
     done: true,
