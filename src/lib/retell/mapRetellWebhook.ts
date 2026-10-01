@@ -204,7 +204,7 @@ export function mapRetellWebhookToVoiceEvent(
       rooms: custom.rooms_min ?? null,
       urgency: normalizeUrgency(custom.urgency),
       notes: custom.notes ?? analysis.call_summary ?? null,
-      status: "new",
+      // status intentionally omitted → scoring in ingestVoiceEvent decides
     },
   };
 }
