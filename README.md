@@ -28,6 +28,18 @@ npm run dev
 - Simulator: http://localhost:3000/dashboard/simulator
 - Leads: http://localhost:3000/dashboard/leads
 
+## Retell Live Sync (Pilot)
+
+Runbook: [`docs/retell-setup-guide.md`](docs/retell-setup-guide.md)
+
+```bash
+# Validate prompt/schema payload without API calls
+npm run sync:retell -- --dry-run
+
+# Create/update Retell LLM + Agent (needs .env.local)
+npm run sync:retell
+```
+
 ## Webhook / Retell Mock
 
 Retell Spec + HMAC: [`docs/retell-webhook.md`](docs/retell-webhook.md)

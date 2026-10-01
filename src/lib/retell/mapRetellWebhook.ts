@@ -5,6 +5,10 @@ import type {
   VoiceEventPayload,
 } from "@/lib/db/types";
 
+/**
+ * Keep field names aligned with `src/lib/retell/customAnalysisSchema.mjs`
+ * (used by `npm run sync:retell`).
+ */
 export interface RetellCustomAnalysis {
   client_name?: string;
   client_phone?: string;
