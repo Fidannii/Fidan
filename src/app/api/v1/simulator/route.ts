@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createSimulatorLead } from "@/lib/db/store";
 import {
   REAL_ESTATE_GREETING,
   REAL_ESTATE_SIMULATOR_SCRIPT,
 } from "@/lib/ai/prompts/realEstateAgent";
+import { ingestRetellCompatibleEvent } from "@/lib/retell/ingestRetellCompatibleEvent";
+import { mapSimulatorFinishToRetellEvent } from "@/lib/retell/mapSimulatorToRetell";
 import type { TranscriptTurn } from "@/lib/db/types";
 
 const startSchema = z.object({
@@ -99,35 +100,40 @@ export async function POST(req: NextRequest) {
 
   if (body.action === "finish") {
     const parsed = finishSchema.parse(body);
-    const draft = parsed.leadDraft as Record<string, unknown>;
-    const summary =
-      typeof draft.notes === "string"
-        ? `Simulator: ${String(draft.full_name ?? "Lead")} – ${String(draft.notes)}`
-        : `Simulator-Lead ${String(draft.full_name ?? "unbekannt")}`;
 
-    const { call, lead } = await createSimulatorLead({
-      transcript: parsed.transcript,
-      summary,
-      duration_seconds: parsed.duration_seconds,
-      lead: {
-        full_name: (draft.full_name as string) ?? null,
-        phone: (draft.phone as string) ?? null,
-        email: (draft.email as string) ?? null,
-        intent: (draft.intent as "rent") ?? "rent",
-        budget_min: (draft.budget_min as number) ?? null,
-        budget_max: (draft.budget_max as number) ?? null,
-        preferred_locations: (draft.preferred_locations as string[]) ?? [],
-        property_type: (draft.property_type as string) ?? null,
-        rooms: (draft.rooms as number) ?? null,
-        move_in_date: (draft.move_in_date as string) ?? null,
-        urgency: (draft.urgency as "high") ?? "medium",
-        notes: (draft.notes as string) ?? summary,
-        status: (draft.status as "qualified") ?? "qualified",
-        estimated_pipeline_value: 14500,
-      },
-    });
+    try {
+      // 1) Simulator state → Retell-compatible event
+      // 2) Same mapper + ingestVoiceEvent path as live webhooks
+      const simulatedEvent = mapSimulatorFinishToRetellEvent({
+        transcript: parsed.transcript,
+        leadDraft: parsed.leadDraft,
+        duration_seconds: parsed.duration_seconds,
+      });
 
-    return NextResponse.json({ call, lead });
+      const { call, lead, leadId } = await ingestRetellCompatibleEvent(
+        simulatedEvent,
+        { direction: "simulator" },
+      );
+
+      // Keep existing UI contract for /dashboard/simulator
+      return NextResponse.json({
+        call,
+        lead,
+        success: true,
+        leadId,
+      });
+    } catch (error) {
+      console.error("simulator finish ingestion error", error);
+      return NextResponse.json(
+        {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Simulator ingestion failed",
+        },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({ message: "Unknown action" }, { status: 400 });

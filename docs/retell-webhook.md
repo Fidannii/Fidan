@@ -60,3 +60,10 @@ node scripts/mock-retell-webhook.mjs --unsigned
 ## Persistenz
 Mapped payload goes through `ingestVoiceEvent()` in `src/lib/db/store.ts`
 (Demo-Store oder Supabase, je nach Env).
+
+## Simulator uses the same pipeline
+`POST /api/v1/simulator` (`action=finish`) maps browser state to a Retell-compatible
+`call_analyzed` event via `mapSimulatorFinishToRetellEvent`, then runs
+`ingestRetellCompatibleEvent()` → same mapper + scoring + DB write path as live calls.
+
+UI contract for `/dashboard/simulator` stays `{ call, lead }`.
