@@ -16,7 +16,7 @@ const checklist = [
   },
   {
     title: "Löschkonzept Audio",
-    body: "30-Tage Cleanup via SQL-Funktion + /api/cron/cleanup-recordings (docs/audio-retention.md).",
+    body: "30-Tage Cleanup via cleanup_expired_recordings() + /api/v1/cron/cleanup-recordings.",
     done: true,
   },
   {

@@ -11,7 +11,7 @@ export interface RetentionCleanupResult {
 
 /**
  * Null recording_url on calls older than retention_days.
- * Demo backend mutates JSON store; Supabase uses SQL RPC/fallback update.
+ * Prefers RPC `cleanup_expired_recordings()` (003 migration).
  */
 export async function cleanupExpiredRecordings(
   retentionDays = 30,
@@ -38,13 +38,30 @@ export async function cleanupExpiredRecordings(
 
   const supabase = getServiceSupabase();
 
-  // Prefer SQL function from migration; fallback to direct update
-  const rpc = await supabase.rpc("cleanup_expired_call_recordings", {
+  // Canonical RPC from 003_audio_retention_cleanup.sql (returns integer)
+  if (retentionDays === 30) {
+    const rpc = await supabase.rpc("cleanup_expired_recordings");
+    if (!rpc.error) {
+      return {
+        backend,
+        retention_days: retentionDays,
+        cleaned_count: Number(rpc.data ?? 0),
+        cutoff,
+      };
+    }
+    console.warn(
+      "cleanup_expired_recordings RPC unavailable:",
+      rpc.error.message,
+    );
+  }
+
+  // Parameterized compat RPC
+  const parameterized = await supabase.rpc("cleanup_expired_call_recordings", {
     retention_days: retentionDays,
   });
 
-  if (!rpc.error && Array.isArray(rpc.data) && rpc.data[0]) {
-    const row = rpc.data[0] as {
+  if (!parameterized.error && Array.isArray(parameterized.data) && parameterized.data[0]) {
+    const row = parameterized.data[0] as {
       cleaned_count?: number;
       cutoff?: string;
     };
@@ -56,13 +73,7 @@ export async function cleanupExpiredRecordings(
     };
   }
 
-  if (rpc.error) {
-    console.warn(
-      "cleanup_expired_call_recordings RPC unavailable, using fallback update:",
-      rpc.error.message,
-    );
-  }
-
+  // Direct update fallback
   const { data: expired, error: selectError } = await supabase
     .from("calls")
     .select("id")
@@ -83,10 +94,17 @@ export async function cleanupExpiredRecordings(
 
   const { error: updateError } = await supabase
     .from("calls")
-    .update({ recording_url: null })
+    .update({ recording_url: null, updated_at: new Date().toISOString() })
     .in("id", ids);
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    // older schemas without updated_at
+    const retry = await supabase
+      .from("calls")
+      .update({ recording_url: null })
+      .in("id", ids);
+    if (retry.error) throw retry.error;
+  }
 
   return {
     backend,

@@ -1,81 +1,97 @@
 # DSGVO Audio Retention (30-Tage Cleanup)
 
-OpsFlow speichert ggf. `calls.recording_url` (Retell/Twilio Temp-URL oder Storage-Link).
-Nach **30 Tagen** werden diese Referenzen automatisch genullt (Löschkonzept für Pilot/Prod).
+OpsFlow speichert ggf. `calls.recording_url`. Nach **30 Tagen** wird die Referenz
+automatisch auf `NULL` gesetzt.
 
-> Hinweis: Das Nullen der URL entfernt den App-Zugriff. Liegen Audiodateien zusätzlich in
-> Supabase Storage / S3, müssen Bucket-Lifecycle-Policies parallel greifen (Follow-up).
+> Nullen der URL entfernt den App-Zugriff. Zusätzliche Storage-Buckets brauchen
+> eigene Lifecycle-Policies (Follow-up).
 
 ---
 
-## 1. SQL Migration (Supabase / pg function)
+## 1. SQL Migration (Supabase)
 
-Datei: [`supabase/migrations/20261001_audio_retention_cleanup.sql`](../supabase/migrations/20261001_audio_retention_cleanup.sql)
-
-Im Supabase SQL Editor ausführen. Erzeugt:
-
-- `public.cleanup_expired_call_recordings(retention_days int default 30)`
-- Partial Index auf ablaufende Recordings
-
-Manuell testen:
+Datei: [`supabase/migrations/003_audio_retention_cleanup.sql`](../supabase/migrations/003_audio_retention_cleanup.sql)
 
 ```sql
-select * from public.cleanup_expired_call_recordings(30);
+select public.cleanup_expired_recordings();
 ```
 
-Optional `pg_cron` (Extension aktivieren, dann Schedule-Kommentar in der Migration einkommentieren):
+Plant optional `pg_cron` um **03:00 UTC**. Schlägt das Schedule fehl (Free-Tier),
+greift die Vercel-Cron-Route.
+
+### Manueller SQL-Test
 
 ```sql
-select cron.schedule(
-  'opsflow-cleanup-recordings-daily',
-  '15 3 * * *',
-  $$select public.cleanup_expired_call_recordings(30);$$
+-- A. Test-Datensatz mit altem Datum anlegen
+insert into public.calls (
+  organization_id,
+  external_call_id,
+  recording_url,
+  created_at
+)
+values (
+  '11111111-1111-1111-1111-111111111111',
+  'test_old_call',
+  'https://audio.retellai.com/old_sample.wav',
+  now() - interval '31 days'
 );
+
+-- B. Cleanup manuell ausführen
+select public.cleanup_expired_recordings();
+
+-- C. Prüfen ob recording_url NULL ist
+select id, external_call_id, recording_url
+from public.calls
+where external_call_id = 'test_old_call';
 ```
 
 ---
 
-## 2. Vercel Cron Route (App-seitig)
+## 2. Vercel Cron Endpoint
 
-Endpoint: `GET|POST /api/cron/cleanup-recordings`
+Canonical path: `GET|POST /api/v1/cron/cleanup-recordings`  
+Legacy alias: `/api/cron/cleanup-recordings`
 
-- Auth: `Authorization: Bearer $CRON_SECRET` (oder `?secret=`)
-- In Production **ohne** `CRON_SECRET` → `401`
-- Nutzt `cleanupExpiredRecordings()`:
-  - Supabase: RPC, Fallback Direct-Update
-  - Demo-Store: JSON-Mutation
+Auth:
 
-`vercel.json` plant täglich **03:15 UTC**:
-
-```json
-{
-  "crons": [{ "path": "/api/cron/cleanup-recordings", "schedule": "15 3 * * *" }]
-}
+```http
+Authorization: Bearer $CRON_SECRET
 ```
 
-Env:
-
-```env
-CRON_SECRET=long-random-string
-```
-
-Lokal:
+Ohne `CRON_SECRET` nur außerhalb Production erlaubt.
 
 ```bash
-curl -s "http://localhost:3000/api/cron/cleanup-recordings?days=30" \
+curl -s http://localhost:3000/api/v1/cron/cleanup-recordings \
   -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-Ohne Secret nur außerhalb von Production erlaubt.
+---
+
+## 3. `vercel.json`
+
+Täglich **03:00 UTC**:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/v1/cron/cleanup-recordings",
+      "schedule": "0 3 * * *"
+    }
+  ]
+}
+```
 
 ---
 
-## 3. Empfohlene Pilot-Konfiguration
+## Env
 
-| Umgebung | Mechanismus |
-|---|---|
-| Supabase EU | SQL function + optional pg_cron |
-| Vercel | Cron → `/api/cron/cleanup-recordings` |
-| Lokal/Demo | Curl gegen Cron-Route oder Demo-Store Cleanup |
-
-Doppelte Ausführung (pg_cron + Vercel) ist idempotent (bereits `null` → kein erneuter Effekt).
+```env
+# ==========================================
+# DSGVO & CRON SECURITY
+# ==========================================
+CRON_SECRET=your_random_cron_secret_here
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
