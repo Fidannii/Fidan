@@ -28,9 +28,15 @@ npm run dev
 - Simulator: http://localhost:3000/dashboard/simulator
 - Leads: http://localhost:3000/dashboard/leads
 
-## Webhook Beispiel
+## Webhook / Retell Mock
+
+Retell Spec + HMAC: [`docs/retell-webhook.md`](docs/retell-webhook.md)
 
 ```bash
+# Signed Retell-style mock (recommended)
+RETELL_WEBHOOK_SECRET=dev_retell_secret npm run mock:retell
+
+# Or unsigned internal demo payload
 curl -X POST http://localhost:3000/api/v1/webhooks/voice-event \
   -H 'Content-Type: application/json' \
   -d '{

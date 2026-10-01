@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ingestVoiceEvent } from "@/lib/db/store";
+import {
+  getRetellSigningKey,
+  shouldEnforceRetellSignature,
+  verifyRetellSignature,
+} from "@/lib/security/verifyRetellSignature";
+import {
+  isRetellStylePayload,
+  mapRetellWebhookToVoiceEvent,
+} from "@/lib/retell/mapRetellWebhook";
+import type { VoiceEventPayload } from "@/lib/db/types";
 
 const transcriptSchema = z.object({
   role: z.enum(["agent", "user", "system"]),
@@ -40,7 +50,8 @@ const leadSchema = z
   })
   .optional();
 
-const bodySchema = z.object({
+/** Internal/demo contract (simulator + curl helpers) */
+const internalBodySchema = z.object({
   event: z.enum(["call_started", "call_ended", "call_analyzed"]),
   call_id: z.string().min(1),
   agent_id: z.string().optional(),
@@ -59,21 +70,74 @@ const bodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const json = await req.json();
-    const parsed = bodySchema.safeParse(json);
-    if (!parsed.success) {
+    const rawBody = await req.text();
+    const signature = req.headers.get("x-retell-signature");
+    const signingKey = getRetellSigningKey();
+
+    if (shouldEnforceRetellSignature(signature)) {
+      if (!signingKey) {
+        return NextResponse.json(
+          { ok: false, message: "Webhook signing key not configured" },
+          { status: 500 },
+        );
+      }
+      if (!verifyRetellSignature(rawBody, signature, signingKey)) {
+        return NextResponse.json(
+          { ok: false, message: "Invalid signature" },
+          { status: 401 },
+        );
+      }
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(rawBody);
+    } catch {
       return NextResponse.json(
-        {
-          ok: false,
-          message: "Invalid payload",
-          errors: parsed.error.flatten(),
-        },
+        { ok: false, message: "Invalid JSON body" },
         { status: 400 },
       );
     }
 
-    const result = await ingestVoiceEvent(parsed.data);
-    return NextResponse.json(result, { status: 200 });
+    let voiceEvent: VoiceEventPayload;
+
+    if (isRetellStylePayload(json)) {
+      const mapped = mapRetellWebhookToVoiceEvent(
+        json as Parameters<typeof mapRetellWebhookToVoiceEvent>[0],
+      );
+      if ("ignored" in mapped) {
+        return NextResponse.json(
+          { ok: true, status: "ignored", reason: mapped.reason },
+          { status: 200 },
+        );
+      }
+      voiceEvent = mapped;
+    } else {
+      const parsed = internalBodySchema.safeParse(json);
+      if (!parsed.success) {
+        return NextResponse.json(
+          {
+            ok: false,
+            message: "Invalid payload",
+            errors: parsed.error.flatten(),
+          },
+          { status: 400 },
+        );
+      }
+      voiceEvent = parsed.data;
+    }
+
+    const result = await ingestVoiceEvent(voiceEvent);
+    return NextResponse.json(
+      {
+        ok: true,
+        success: true,
+        call_id: result.call_id,
+        lead_id: result.lead_id,
+        message: result.message,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("voice-event webhook error", error);
     return NextResponse.json(
